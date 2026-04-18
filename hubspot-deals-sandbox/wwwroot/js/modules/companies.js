@@ -1,0 +1,295 @@
+import { apiFetch, normalizeApiError } from '../api.js';
+import {
+  buildCompanyPayload,
+  clearCompanyForm,
+  crudState,
+  fillCompanyForm,
+  setFormMode,
+  syncCrudForms,
+} from '../forms.js';
+import {
+  renderCompanyFilterOptions,
+  renderCompanyIndustryOptions,
+  renderCompanyRowEdit,
+  renderCompanyTable,
+} from '../renders.js';
+import { refreshAll } from '../runtime.js';
+import { state } from '../state.js';
+import { setError, setLoading, setResult, showPanel, toast, validateRequired } from '../ui.js';
+import { linksPanelAvailable, useCompanyInLinks } from '../utility-panels.js';
+import { cancelInlineEdit, cancelAnyOpenEdit } from '../inline-edit.js';
+
+function getIndustryOptions() {
+  return state.companyIndustryOptions.length
+    ? state.companyIndustryOptions
+    : undefined;
+}
+
+function resetCompanyForm() {
+  clearCompanyForm();
+  renderCompanyIndustryOptions(getIndustryOptions());
+  setFormMode('company', 'create');
+}
+
+function renderCompanyUi() {
+  syncCrudForms(state);
+  renderCompanyIndustryOptions(getIndustryOptions());
+  renderCompanyFilterOptions(getIndustryOptions());
+
+  if (crudState.company.mode === 'edit') {
+    const editedCompany = state.companies.find(company => company.id === crudState.company.id);
+    if (editedCompany) {
+      fillCompanyForm(editedCompany);
+    }
+  }
+
+  renderCompanyTable(state.companies, {
+    linksEnabled: linksPanelAvailable(),
+  });
+}
+
+async function saveCompany(button) {
+  const ok = validateRequired([
+    { inputId: 'company-name', errorId: 'err-company-name' },
+  ]);
+  if (!ok) return;
+
+  const payload = buildCompanyPayload();
+  const isEdit = crudState.company.mode === 'edit';
+  const recordId = crudState.company.id;
+  const method = isEdit ? 'PATCH' : 'POST';
+  const url = isEdit ? `/api/companies/${encodeURIComponent(recordId)}` : '/api/companies';
+
+  setLoading(button, true);
+  try {
+    const saved = await apiFetch(url, method, payload);
+    await refreshAll();
+    resetCompanyForm();
+    setResult(saved);
+    toast(`Company "${payload.name || recordId || 'Unnamed'}" ${isEdit ? 'updated' : 'created'}!`, 'success');
+  }
+  catch (error) {
+    const message = normalizeApiError(error);
+    setError(message);
+    toast(`Failed to ${isEdit ? 'update' : 'create'} company`, 'error');
+  }
+  finally {
+    setLoading(button, false);
+  }
+}
+
+function startEditCompany(companyId) {
+  const company = state.companies.find(record => record.id === companyId);
+  if (!company) {
+    toast('Company not found in the current list.', 'error');
+    return;
+  }
+
+  fillCompanyForm(company);
+  setFormMode('company', 'edit', company.id);
+  showPanel('companies');
+}
+
+async function deleteCompany(companyId, button) {
+  const company = state.companies.find(record => record.id === companyId);
+  const label = company?.properties?.name || companyId;
+
+  if (!confirm(`Delete company "${label}"? This writes to the live HubSpot sandbox.`)) {
+    return;
+  }
+
+  setLoading(button, true);
+  try {
+    const result = await apiFetch(`/api/companies/${encodeURIComponent(companyId)}`, 'DELETE');
+    await refreshAll();
+    setResult(result);
+    toast('Company deleted!', 'success');
+  }
+  catch (error) {
+    const message = normalizeApiError(error);
+    setError(message);
+    toast('Failed to delete company', 'error');
+  }
+  finally {
+    setLoading(button, false);
+  }
+}
+
+function applyCompanyFilters() {
+  const query = document.getElementById('filter-company-name').value.toLowerCase();
+  const industry = document.getElementById('filter-company-industry').value;
+  const isActive = !!(query || industry);
+
+  const visibleCompanies = isActive
+    ? state.companies.filter(company => {
+      const text = [company.properties.name, company.properties.domain]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (query && !text.includes(query)) return false;
+      if (industry && company.properties.industry !== industry) return false;
+      return true;
+    })
+    : state.companies;
+
+  renderCompanyTable(visibleCompanies, {
+    linksEnabled: linksPanelAvailable(),
+    countClass: isActive ? 'pill filter-active' : 'pill',
+    countLabel: isActive ? `${visibleCompanies.length} filtered` : `${state.companies.length} companies`,
+    emptyMessage: isActive
+      ? 'No companies match the current filters.'
+      : 'No companies yet.<br>Create the first company using the form on the left.',
+  });
+}
+
+function clearCompanyFilters() {
+  document.getElementById('filter-company-name').value = '';
+  document.getElementById('filter-company-industry').value = '';
+  applyCompanyFilters();
+}
+
+function startInlineEditCompany(companyId) {
+  const company = state.companies.find(record => record.id === companyId);
+  if (!company) return;
+
+  cancelAnyOpenEdit();
+  const row = document.querySelector(`#company-table-body tr[data-id="${companyId}"]`);
+  if (row) {
+    renderCompanyRowEdit(row, company);
+  }
+}
+
+async function saveInlineEditCompany(companyId, button) {
+  const panelRow = document.querySelector(`tr[data-edit-for="${companyId}"]`);
+  if (!panelRow) return;
+
+  const nameInput = panelRow.querySelector('[data-field="name"]');
+  if (!nameInput.value.trim()) {
+    nameInput.classList.add('invalid');
+    nameInput.focus();
+    return;
+  }
+
+  const payload = { name: nameInput.value.trim() };
+  const domain = panelRow.querySelector('[data-field="domain"]')?.value.trim();
+  const city = panelRow.querySelector('[data-field="city"]')?.value.trim();
+  const industry = panelRow.querySelector('[data-field="industry"]')?.value;
+
+  if (domain) payload.domain = domain;
+  if (city) payload.city = city;
+  if (industry) payload.industry = industry;
+
+  setLoading(button, true);
+  try {
+    const saved = await apiFetch(`/api/companies/${encodeURIComponent(companyId)}`, 'PATCH', payload);
+    setResult(saved);
+    toast('Company updated!', 'success');
+    await refreshAll();
+  }
+  catch (error) {
+    setError(normalizeApiError(error));
+    toast('Failed to update company', 'error');
+    setLoading(button, false);
+  }
+}
+
+export default {
+  id: 'companies',
+  label: 'Companies',
+  navOrder: 3,
+  renderNav() {
+    return `
+      <button class="nav-button" data-panel="companies">
+        Companies <span class="nav-badge" data-module-badge="companies">...</span>
+      </button>`;
+  },
+  renderPanel() {
+    return `
+      <section id="panel-companies" class="panel-card panel-hidden">
+        <div class="panel-header">
+          <div>
+            <h2>Companies</h2>
+            <p>Companies are organizations. Deals are typically linked to a company
+               before they are meaningful in a CRM.</p>
+          </div>
+          <div class="sub-badge">Create organization first</div>
+        </div>
+
+        <div class="grid-2">
+          <article class="section-card">
+            <h3 id="company-form-title">Create Company</h3>
+            <p>Company name is the anchor. Domain, city, and industry help when browsing records.</p>
+            <div class="form-grid cols-2">
+              <div>
+                <label for="company-name">Company name <span class="label-hint">required</span></label>
+                <input id="company-name" type="text" placeholder="Northwind Data Systems">
+                <div class="field-error" id="err-company-name">Company name is required.</div>
+              </div>
+              <div>
+                <label for="company-domain">Domain</label>
+                <input id="company-domain" type="text" placeholder="northwind.example">
+              </div>
+              <div>
+                <label for="company-city">City</label>
+                <input id="company-city" type="text" placeholder="Taoyuan">
+              </div>
+              <div>
+                <label for="company-industry">Industry</label>
+                <select id="company-industry"></select>
+                <div class="helper">This comes from HubSpot allowed options, so the value is always valid.</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="btn-save-company" class="button button-primary">Create company</button>
+              <button id="btn-cancel-company-edit" class="button button-secondary hidden">Cancel edit</button>
+            </div>
+          </article>
+
+          <article class="table-card">
+            <div class="table-toolbar">
+              <div>
+                <h3>Company Records</h3>
+                <p>Use "Use in Links" to pre-select for association.</p>
+              </div>
+              <span id="company-count" class="pill">0 companies</span>
+            </div>
+            <div class="table-filters">
+              <input id="filter-company-name" class="filter-input" type="search" placeholder="Search by name or domain...">
+              <select id="filter-company-industry" class="filter-select"><option value="">All industries</option></select>
+              <button id="btn-clear-company-filters" class="filter-clear">Clear</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Domain</th><th>City</th><th>Industry</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="company-table-body"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>`;
+  },
+  mount(container) {
+    container.querySelector('#btn-save-company')?.addEventListener('click', event =>
+      saveCompany(event.currentTarget));
+    container.querySelector('#btn-cancel-company-edit')?.addEventListener('click', resetCompanyForm);
+    container.querySelector('#filter-company-name')?.addEventListener('input', applyCompanyFilters);
+    container.querySelector('#filter-company-industry')?.addEventListener('change', applyCompanyFilters);
+    container.querySelector('#btn-clear-company-filters')?.addEventListener('click', clearCompanyFilters);
+    container.querySelector('#company-table-body')?.addEventListener('click', async event => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+
+      const { action, id } = button.dataset;
+      if (action === 'use-company-links') useCompanyInLinks(id);
+      if (action === 'edit-company') startInlineEditCompany(id);
+      if (action === 'delete-company') await deleteCompany(id, button);
+      if (action === 'save-company-inline') await saveInlineEditCompany(id, button);
+      if (action === 'cancel-inline') cancelInlineEdit(id);
+    });
+
+    document.addEventListener('crm:data-refreshed', renderCompanyUi);
+    renderCompanyUi();
+  }
+};
