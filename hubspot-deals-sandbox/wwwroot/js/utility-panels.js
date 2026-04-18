@@ -647,11 +647,11 @@ function createSettingsDescriptor(availableModules) {
         }
         setLoading(btn, true);
         try {
-          const result = await apiFetch('/api/modules', 'POST', ordered);
-          toast(result.message ?? 'Saved. Restart the server to apply.', 'success');
+          await apiFetch('/api/modules', 'POST', ordered);
+          toast('Saved. Reloading in 3 seconds…', 'success');
+          setTimeout(() => location.reload(), 3000);
         } catch (error) {
           toast('Failed to save: ' + normalizeApiError(error), 'error');
-        } finally {
           setLoading(btn, false);
         }
       });

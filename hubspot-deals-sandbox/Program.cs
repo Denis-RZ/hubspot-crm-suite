@@ -380,17 +380,27 @@ async Task RunWebAsync(string accessToken)
     var allModules = CrmModuleCatalog.DiscoverAllModules(Assembly.GetExecutingAssembly());
 
     app.MapGet("/api/modules/available", () =>
-        Results.Ok(allModules.Select(m => new
+    {
+        // Enabled modules first in their current config order, disabled ones after sorted by navOrder
+        var enabledIds = enabledModules.Select(m => m.Id).ToList();
+        var ordered = allModules.OrderBy(m =>
+        {
+            var idx = enabledIds.FindIndex(id => string.Equals(id, m.Id, StringComparison.OrdinalIgnoreCase));
+            return idx >= 0 ? idx : enabledIds.Count + m.NavOrder;
+        });
+        return Results.Ok(ordered.Select(m => new
         {
             id      = m.Id,
             label   = m.Label,
             navOrder = m.NavOrder,
-            enabled = enabledModules.Any(e => string.Equals(e.Id, m.Id, StringComparison.OrdinalIgnoreCase)),
-        })));
+            enabled = enabledIds.Any(id => string.Equals(id, m.Id, StringComparison.OrdinalIgnoreCase)),
+        }));
+    });
 
     app.MapPost("/api/modules", async (
         string[] moduleIds,
-        IWebHostEnvironment env) =>
+        IWebHostEnvironment env,
+        IHostApplicationLifetime lifetime) =>
     {
         if (moduleIds.Length == 0)
             return Results.BadRequest(new { error = "At least one module must be enabled." });
@@ -406,7 +416,14 @@ async Task RunWebAsync(string accessToken)
             new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(settingsPath, json);
 
-        return Results.Ok(new { message = "Saved. Restart the server to apply changes." });
+        // Give the response time to reach the browser before shutting down
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(600);
+            lifetime.StopApplication();
+        });
+
+        return Results.Ok(new { message = "Saved. Server is restarting…" });
     });
 
     app.MapGet("/api/bootstrap", async (
