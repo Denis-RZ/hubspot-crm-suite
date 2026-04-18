@@ -1,0 +1,6 @@
+﻿record_id,dealname,amount,dealstage,pipeline,closedate
+,Cloud migration 1,22100,,,2027-04-06
+,Cloud migration 2,27600,,,2026-07-08
+,Infra expansion 3,16600,,,2026-08-19
+,Mobile app 4,42500,,,2026-11-28
+,SaaS licence 5,33700,,,2026-09-16

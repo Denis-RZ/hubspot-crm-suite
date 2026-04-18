@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "dealname": "Sandbox deal from C#",
+    "amount": "15000",
+    "dealstage": "replace-with-valid-stage-id",
+    "pipeline": "default",
+    "closedate": "2026-05-01T00:00:00Z"
+  }
+}

@@ -1,0 +1,19 @@
+# .NET
+**/bin/
+**/obj/
+**/.vs/
+
+# Node
+**/node_modules/
+
+# Test and browser artifacts
+**/test-results/
+**/playwright-report/
+**/.playwright/
+
+# Logs
+*.log
+
+# OS and editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,71 @@
+@echo off
+setlocal
+
+rem Start the local HubSpot CRM sandbox if it is not already running.
+rem If the server is already listening on port 5100, just open the browser.
+
+set "SCRIPT_DIR=%~dp0"
+set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+set "PORT=5100"
+set "URL=http://localhost:%PORT%"
+set "STDOUT_LOG=%SCRIPT_DIR%\webserver.stdout.log"
+set "STDERR_LOG=%SCRIPT_DIR%\webserver.stderr.log"
+
+pushd "%SCRIPT_DIR%" >nul
+
+if not defined HUBSPOT_ACCESS_TOKEN (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$readme = Join-Path '%SCRIPT_DIR%' 'README.md'; if (Test-Path $readme) { $m = [regex]::Match((Get-Content -Raw $readme), 'pat-[A-Za-z0-9\\-]+'); if ($m.Success) { $m.Value } }"`) do (
+        set "HUBSPOT_ACCESS_TOKEN=%%I"
+    )
+)
+
+if not defined HUBSPOT_ACCESS_TOKEN (
+    echo HUBSPOT_ACCESS_TOKEN is not set.
+    echo Set it before launching the sandbox:
+    echo   set HUBSPOT_ACCESS_TOKEN=your-token
+    popd >nul
+    exit /b 1
+)
+
+call :GetListeningPid "%PORT%" RUNNING_PID
+if defined RUNNING_PID (
+    echo HubSpot CRM Sandbox is already running on %URL% ^(PID %RUNNING_PID%^).
+    start "" "%URL%"
+    popd >nul
+    exit /b 0
+)
+
+echo Starting HubSpot CRM Sandbox on %URL% ...
+del "%STDOUT_LOG%" "%STDERR_LOG%" 2>nul
+
+start "HubSpot CRM Sandbox" cmd /c "cd /d ""%SCRIPT_DIR%"" && dotnet run --project ""%SCRIPT_DIR%\HubSpotDealsSandbox.csproj"" -- web 1>>""%STDOUT_LOG%"" 2>>""%STDERR_LOG%"""
+
+for /l %%I in (1,1,30) do (
+    call :GetListeningPid "%PORT%" RUNNING_PID
+    if defined RUNNING_PID goto :Started
+    timeout /t 1 /nobreak >nul
+)
+
+echo Sandbox did not start in time. Check:
+echo   %STDOUT_LOG%
+echo   %STDERR_LOG%
+popd >nul
+exit /b 1
+
+:Started
+echo HubSpot CRM Sandbox started on %URL% ^(PID %RUNNING_PID%^).
+start "" "%URL%"
+popd >nul
+exit /b 0
+
+:GetListeningPid
+setlocal
+set "PORT_TO_CHECK=%~1"
+set "FOUND_PID="
+
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$conn = Get-NetTCPConnection -LocalPort %PORT_TO_CHECK% -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { $conn.OwningProcess }"`) do (
+    set "FOUND_PID=%%I"
+)
+
+endlocal & set "%~2=%FOUND_PID%"
+exit /b 0

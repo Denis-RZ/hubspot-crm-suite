@@ -1,0 +1,12 @@
+.vs/
+bin/
+obj/
+
+CsvGenerator/bin/
+CsvGenerator/obj/
+
+webserver.stdout.log
+webserver.stderr.log
+
+*.user
+*.suo

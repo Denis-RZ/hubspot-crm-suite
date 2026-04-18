@@ -1,0 +1,45 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hubspot-crm-local-stand", "hubspot-crm-local-stand", "{B6A94ACA-16CF-1D4B-2272-EF64F6F16842}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hubspot-deals-sandbox", "hubspot-deals-sandbox", "{08E28EFB-7F2E-B56F-4268-DF0EE361956B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HubSpotCrmLocalStand", "hubspot-crm-local-stand\HubSpotCrmLocalStand.csproj", "{E56B8C66-7963-E32F-D798-A9B3D006AA63}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HubSpotDealsSandbox", "hubspot-deals-sandbox\HubSpotDealsSandbox.csproj", "{83D791A9-CC94-BB6A-531F-2DD272B5611B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsvGenerator", "hubspot-deals-sandbox\CsvGenerator\CsvGenerator.csproj", "{8782B5F9-8A68-CDBC-D6F7-E24201F59756}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E56B8C66-7963-E32F-D798-A9B3D006AA63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E56B8C66-7963-E32F-D798-A9B3D006AA63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E56B8C66-7963-E32F-D798-A9B3D006AA63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E56B8C66-7963-E32F-D798-A9B3D006AA63}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83D791A9-CC94-BB6A-531F-2DD272B5611B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83D791A9-CC94-BB6A-531F-2DD272B5611B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83D791A9-CC94-BB6A-531F-2DD272B5611B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83D791A9-CC94-BB6A-531F-2DD272B5611B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8782B5F9-8A68-CDBC-D6F7-E24201F59756}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8782B5F9-8A68-CDBC-D6F7-E24201F59756}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8782B5F9-8A68-CDBC-D6F7-E24201F59756}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8782B5F9-8A68-CDBC-D6F7-E24201F59756}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E56B8C66-7963-E32F-D798-A9B3D006AA63} = {B6A94ACA-16CF-1D4B-2272-EF64F6F16842}
+		{83D791A9-CC94-BB6A-531F-2DD272B5611B} = {08E28EFB-7F2E-B56F-4268-DF0EE361956B}
+		{8782B5F9-8A68-CDBC-D6F7-E24201F59756} = {08E28EFB-7F2E-B56F-4268-DF0EE361956B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D9053CE6-701B-4701-9BCD-8B0E76A7246B}
+	EndGlobalSection
+EndGlobal
