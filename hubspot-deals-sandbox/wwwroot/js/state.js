@@ -3,10 +3,13 @@
 // it easy to see what triggers a re-render.
 
 export const state = {
+  enabledModules: [],
+  loadedModules: [],
   pipelines:     [],
   deals:         [],
   contacts:      [],
   companies:     [],
+  companyIndustryOptions: [],
   importPreview: null,
 
   // Which deals are currently shown in the table (may differ from state.deals when a search is active).

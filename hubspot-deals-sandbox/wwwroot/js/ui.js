@@ -46,9 +46,15 @@ export function showPanel(panelName) {
 // ── Sidebar counters ──────────────────────────────────────────────────────────
 
 export function updateBadges(state) {
-  document.getElementById('badge-deals').textContent     = state.deals.length     || '0';
-  document.getElementById('badge-contacts').textContent  = state.contacts.length  || '0';
-  document.getElementById('badge-companies').textContent = state.companies.length || '0';
+  const counts = {
+    deals: state.deals.length,
+    contacts: state.contacts.length,
+    companies: state.companies.length,
+  };
+
+  document.querySelectorAll('[data-module-badge]').forEach(badge => {
+    badge.textContent = counts[badge.dataset.moduleBadge] ?? '0';
+  });
 }
 
 // ── API result panel ──────────────────────────────────────────────────────────

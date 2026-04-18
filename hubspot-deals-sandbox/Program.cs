@@ -1,8 +1,11 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using HubSpotDealsSandbox;
 using HubSpotDealsSandbox.HubSpot;
 using HubSpotDealsSandbox.HubSpot.Models;
+using HubSpotDealsSandbox.ImportExport;
+using HubSpotDealsSandbox.Modules;
 
 var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
 {
@@ -51,7 +54,7 @@ async Task<int> RunAsync(string[] args)
                 break;
 
             case "web":
-                await WebServer.RunAsync(accessToken);
+                await RunWebAsync(accessToken);
                 return 0;
 
             case "search":
@@ -331,4 +334,214 @@ void PrintUsage()
         Search operators: EQ, NEQ, LT, LTE, GT, GTE, HAS_PROPERTY, NOT_HAS_PROPERTY, CONTAINS_TOKEN
         Association object types: contacts, companies
         """);
+}
+
+async Task RunWebAsync(string accessToken)
+{
+    var builder = WebApplication.CreateBuilder(Array.Empty<string>());
+    builder.WebHost.UseUrls("http://localhost:5100");
+    builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
+    var enabledModules = CrmModuleCatalog.LoadEnabledModules(
+        builder.Configuration,
+        Assembly.GetExecutingAssembly());
+
+    builder.Services.AddHttpClient("HubSpot");
+    builder.Services.AddSingleton(sp =>
+        new HubSpotDealsClient(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("HubSpot"),
+            accessToken));
+    builder.Services.AddSingleton(new ModuleAvailability(enabledModules));
+    builder.Services.AddSingleton<CrmCsvService>();
+
+    foreach (var module in enabledModules)
+    {
+        module.RegisterServices(builder.Services);
+    }
+
+    var app = builder.Build();
+
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+        context.Response.Headers["Pragma"] = "no-cache";
+        context.Response.Headers["Expires"] = "0";
+
+        await next();
+    });
+
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+
+    app.MapGet("/api/modules", () =>
+        Results.Ok(enabledModules.Select(module =>
+            new EnabledModuleDescriptor(module.Id, module.Label, module.NavOrder))));
+
+    var allModules = CrmModuleCatalog.DiscoverAllModules(Assembly.GetExecutingAssembly());
+
+    app.MapGet("/api/modules/available", () =>
+        Results.Ok(allModules.Select(m => new
+        {
+            id      = m.Id,
+            label   = m.Label,
+            navOrder = m.NavOrder,
+            enabled = enabledModules.Any(e => string.Equals(e.Id, m.Id, StringComparison.OrdinalIgnoreCase)),
+        })));
+
+    app.MapPost("/api/modules", async (
+        string[] moduleIds,
+        IWebHostEnvironment env) =>
+    {
+        if (moduleIds.Length == 0)
+            return Results.BadRequest(new { error = "At least one module must be enabled." });
+
+        var validIds = new HashSet<string>(allModules.Select(m => m.Id), StringComparer.OrdinalIgnoreCase);
+        var unknown  = moduleIds.Where(id => !validIds.Contains(id)).ToArray();
+        if (unknown.Length > 0)
+            return Results.BadRequest(new { error = $"Unknown module(s): {string.Join(", ", unknown)}" });
+
+        var settingsPath = Path.Combine(env.ContentRootPath, "appsettings.json");
+        var json = System.Text.Json.JsonSerializer.Serialize(
+            new { Modules = moduleIds },
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(settingsPath, json);
+
+        return Results.Ok(new { message = "Saved. Restart the server to apply changes." });
+    });
+
+    app.MapGet("/api/bootstrap", async (
+        IServiceScopeFactory scopeFactory,
+        CancellationToken cancellationToken) =>
+        await ApiEndpointHelpers.ExecuteAsync(async () =>
+        {
+            using var scope = scopeFactory.CreateScope();
+
+            var payload = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var module in enabledModules)
+            {
+                var fragment = await module.BuildBootstrapAsync(scope.ServiceProvider, cancellationToken);
+                foreach (var item in fragment)
+                {
+                    payload[item.Key] = item.Value;
+                }
+            }
+
+            return Results.Ok(payload);
+        }));
+
+    app.MapGet("/api/export/{objectType}", async (
+        string objectType,
+        ModuleAvailability moduleAvailability,
+        CrmCsvService csvService,
+        HubSpotDealsClient client,
+        CancellationToken cancellationToken) =>
+        await ApiEndpointHelpers.ExecuteAsync(async () =>
+        {
+            moduleAvailability.EnsureEnabled(objectType);
+            if (!CrmCsvService.SupportsObjectType(objectType))
+            {
+                throw new ArgumentException($"Unsupported object type '{objectType}'.");
+            }
+
+            var export = await csvService.ExportAsync(objectType, client, cancellationToken);
+            return Results.File(export.Content, export.ContentType, export.FileName);
+        }));
+
+    app.MapGet("/api/export/{objectType}/template", async (
+        string objectType,
+        ModuleAvailability moduleAvailability,
+        CrmCsvService csvService) =>
+        await ApiEndpointHelpers.ExecuteAsync(() =>
+        {
+            moduleAvailability.EnsureEnabled(objectType);
+            if (!CrmCsvService.SupportsObjectType(objectType))
+            {
+                throw new ArgumentException($"Unsupported object type '{objectType}'.");
+            }
+
+            var template = csvService.BuildTemplate(objectType);
+            return Task.FromResult<IResult>(
+                Results.File(template.Content, template.ContentType, template.FileName));
+        }));
+
+    app.MapPost("/api/import/{objectType}/preview", async (
+        string objectType,
+        ModuleAvailability moduleAvailability,
+        CrmCsvService csvService,
+        HubSpotDealsClient client,
+        HttpRequest request,
+        CancellationToken cancellationToken) =>
+        await ApiEndpointHelpers.ExecuteAsync(async () =>
+        {
+            moduleAvailability.EnsureEnabled(objectType);
+            if (!CrmCsvService.SupportsObjectType(objectType))
+            {
+                throw new ArgumentException($"Unsupported object type '{objectType}'.");
+            }
+
+            var file = await ApiEndpointHelpers.ReadUploadedCsvAsync(request, cancellationToken);
+            await using var stream = file.OpenReadStream();
+            var preview = await csvService.PreviewAsync(
+                objectType,
+                file.FileName,
+                stream,
+                client,
+                cancellationToken);
+
+            return Results.Ok(preview);
+        }));
+
+    app.MapPost("/api/import/{objectType}/apply", async (
+        string objectType,
+        ModuleAvailability moduleAvailability,
+        CrmCsvService csvService,
+        HubSpotDealsClient client,
+        HttpRequest request,
+        CancellationToken cancellationToken) =>
+        await ApiEndpointHelpers.ExecuteAsync(async () =>
+        {
+            moduleAvailability.EnsureEnabled(objectType);
+            if (!CrmCsvService.SupportsObjectType(objectType))
+            {
+                throw new ArgumentException($"Unsupported object type '{objectType}'.");
+            }
+
+            var file = await ApiEndpointHelpers.ReadUploadedCsvAsync(request, cancellationToken);
+            await using var stream = file.OpenReadStream();
+            var apply = await csvService.ApplyAsync(
+                objectType,
+                file.FileName,
+                stream,
+                client,
+                cancellationToken);
+
+            return apply.AttemptedRows == 0 && apply.FailedRows > 0
+                ? Results.BadRequest(apply)
+                : Results.Ok(apply);
+        }));
+
+    foreach (var module in enabledModules)
+    {
+        module.MapEndpoints(app);
+    }
+
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        Console.WriteLine("Web UI running at http://localhost:5100");
+        Console.WriteLine("Press Ctrl+C to stop.");
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("http://localhost:5100")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Opening the browser is optional.
+        }
+    });
+
+    await app.RunAsync();
 }

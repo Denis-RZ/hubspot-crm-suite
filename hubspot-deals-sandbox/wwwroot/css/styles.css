@@ -306,6 +306,17 @@ tbody tr:hover { background: rgba(255, 122, 89, 0.04); }
 .association-item strong { display: block; margin-bottom: 4px; }
 .empty-note { color: var(--muted); font-size: 13px; padding: 12px 0 4px; }
 
+/* Module settings toggles */
+.module-toggle-list { display: grid; gap: 10px; margin-top: 6px; }
+.module-toggle-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--line);
+  border-radius: 12px; background: #fff; cursor: pointer;
+}
+.module-toggle-row:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.module-checkbox { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.module-toggle-label { flex: 1; font-weight: 600; }
+
 /* ── Result panel ────────────────────────────────────────────────── */
 .result-card pre {
   margin: 14px 0 0;

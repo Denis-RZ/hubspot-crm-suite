@@ -557,12 +557,95 @@ function createImportDescriptor() {
   };
 }
 
-export function mountUtilityPanels() {
+function createSettingsDescriptor(availableModules) {
+  return {
+    id: 'settings',
+    renderNav: () => `
+      <button class="nav-button" data-panel="settings">
+        Settings
+      </button>`,
+    renderPanel: () => `
+      <section id="panel-settings" class="panel-card panel-hidden">
+        <div class="panel-header">
+          <div>
+            <h2>Module Settings</h2>
+            <p>Enable or disable CRM modules. Changes are saved to
+               <span class="mono">appsettings.json</span> and take effect after a server restart.</p>
+          </div>
+          <div class="sub-badge">Requires restart</div>
+        </div>
+
+        <div class="grid-2">
+          <article class="section-card">
+            <h3>Available Modules</h3>
+            <p>Check the modules you want active. At least one must stay enabled.</p>
+            <div class="module-toggle-list">
+              ${availableModules.map(m => `
+                <label class="module-toggle-row">
+                  <input type="checkbox" class="module-checkbox" value="${m.id}" ${m.enabled ? 'checked' : ''}>
+                  <span class="module-toggle-label">${m.label}</span>
+                  ${m.enabled
+                    ? '<span class="pill">active</span>'
+                    : '<span class="pill" style="background:var(--line);color:var(--muted)">disabled</span>'}
+                </label>`).join('')}
+            </div>
+            <div class="actions" style="margin-top:20px">
+              <button id="btn-save-modules" class="button button-primary">Save changes</button>
+            </div>
+            <div class="helper">After saving, stop and restart the server — then reload the page.</div>
+          </article>
+
+          <article class="section-card">
+            <h3>How modules work</h3>
+            <p>Each module is a self-contained unit: it owns its API endpoints,
+               its bootstrap data, and its UI panel. Disabling a module removes
+               its routes from the server and its panel from the sidebar.</p>
+            <div class="association-item" style="margin-top:12px">
+              <strong>Links panel</strong>
+              Appears automatically when Deals + at least one of Contacts or Companies is enabled.
+            </div>
+            <div class="association-item" style="margin-top:10px">
+              <strong>Import / Export</strong>
+              Appears for every enabled module that has a CSV column definition.
+            </div>
+          </article>
+        </div>
+      </section>`,
+    mount(container) {
+      container.querySelector('#btn-save-modules')?.addEventListener('click', async event => {
+        const btn = event.currentTarget;
+        const selected = [...container.querySelectorAll('.module-checkbox:checked')].map(cb => cb.value);
+        if (!selected.length) {
+          toast('Select at least one module.', 'error');
+          return;
+        }
+        setLoading(btn, true);
+        try {
+          const result = await apiFetch('/api/modules', 'POST', selected);
+          toast(result.message ?? 'Saved. Restart the server to apply.', 'success');
+        } catch (error) {
+          toast('Failed to save: ' + normalizeApiError(error), 'error');
+        } finally {
+          setLoading(btn, false);
+        }
+      });
+    },
+  };
+}
+
+export async function mountUtilityPanels() {
   if (linksPanelAvailable()) {
     appendPanel(createLinksDescriptor());
   }
 
   if (importPanelAvailable()) {
     appendPanel(createImportDescriptor());
+  }
+
+  try {
+    const availableModules = await apiFetch('/api/modules/available');
+    appendPanel(createSettingsDescriptor(availableModules));
+  } catch {
+    // Settings panel is non-critical — skip silently if the endpoint fails
   }
 }

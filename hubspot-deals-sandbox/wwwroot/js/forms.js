@@ -13,6 +13,7 @@ export const LIFECYCLE_STAGES = [
 
 export function renderLifecycleOptions() {
   const select = document.getElementById('contact-lifecycle');
+  if (!select) return;
   select.innerHTML = '<option value="">Not set</option>' +
     LIFECYCLE_STAGES.map(v => `<option value="${v}">${v}</option>`).join('');
 }
@@ -75,14 +76,18 @@ function applyFormCopy(entity) {
   const copy      = FORM_COPY[entity];
   const isEdit    = crudState[entity].mode === 'edit';
   const titleEl   = document.getElementById(copy.titleId);
+  const saveButton = document.getElementById(copy.saveButtonId);
+  const cancelButton = document.getElementById(copy.cancelButtonId);
+  if (!titleEl || !saveButton || !cancelButton) return;
+
   const helpEl    = copy.helpId
     ? document.getElementById(copy.helpId)
     : titleEl?.nextElementSibling;
 
   titleEl.textContent = isEdit ? copy.editTitle   : copy.createTitle;
   if (helpEl) helpEl.textContent = isEdit ? copy.editHelp : copy.createHelp;
-  document.getElementById(copy.saveButtonId).textContent   = isEdit ? copy.editButton  : copy.createButton;
-  document.getElementById(copy.cancelButtonId).classList.toggle('hidden', !isEdit);
+  saveButton.textContent = isEdit ? copy.editButton : copy.createButton;
+  cancelButton.classList.toggle('hidden', !isEdit);
 }
 
 // After a refresh, if the record being edited was deleted, reset to create mode.

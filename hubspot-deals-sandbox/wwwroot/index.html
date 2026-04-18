@@ -10,24 +10,19 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-
-<!-- Shown while the bootstrap request is in flight -->
 <div id="loading-overlay">
   <div class="spinner-lg"></div>
-  <p>Connecting to HubSpot…</p>
+  <p>Connecting to HubSpot...</p>
 </div>
 
-<!-- Toast notifications are appended here by ui.js -->
 <div id="toast-container"></div>
 
 <div class="shell">
-
-  <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <section class="hero">
     <div class="hero-card">
       <h1>HubSpot CRM Sandbox</h1>
-      <p>Follow the four steps below in order. Create the company and contact first,
-         then create a deal, then link the deal to the records you already created.</p>
+      <p>Enabled CRM modules load from <span class="mono">appsettings.json</span> at startup.
+         Each panel keeps the live HubSpot workflow intact while the shell stays static.</p>
     </div>
     <aside class="status-card">
       <div class="status-label"><span class="dot"></span> Live HubSpot Account</div>
@@ -36,434 +31,15 @@
     </aside>
   </section>
 
-  <!-- ── Workflow steps ─────────────────────────────────────────────────── -->
-  <section class="workflow">
-    <article class="workflow-step" data-step="companies">
-      <span>Step 1 <span class="step-arrow">→</span></span>
-      <strong>Create a company</strong>
-      <p>Start with the organization the deal belongs to.</p>
-    </article>
-    <article class="workflow-step" data-step="contacts">
-      <span>Step 2 <span class="step-arrow">→</span></span>
-      <strong>Create a contact</strong>
-      <p>Add the person who talks to sales at that company.</p>
-    </article>
-    <article class="workflow-step" data-step="deals">
-      <span>Step 3 <span class="step-arrow">→</span></span>
-      <strong>Create a deal</strong>
-      <p>Pick a real pipeline and stage — no typing blind IDs.</p>
-    </article>
-    <article class="workflow-step" data-step="links">
-      <span>Step 4 <span class="step-arrow">→</span></span>
-      <strong>Link the records</strong>
-      <p>Connect deal → company and deal → contact.</p>
-    </article>
-  </section>
-
   <section class="layout">
-
-    <!-- ── Sidebar ────────────────────────────────────────────────────────── -->
     <aside class="sidebar">
       <div class="sidebar-title">Workspace</div>
-      <button class="nav-button active" data-panel="deals">
-        Deals <span class="nav-badge" id="badge-deals">…</span>
-      </button>
-      <button class="nav-button" data-panel="contacts">
-        Contacts <span class="nav-badge" id="badge-contacts">…</span>
-      </button>
-      <button class="nav-button" data-panel="companies">
-        Companies <span class="nav-badge" id="badge-companies">…</span>
-      </button>
-      <button class="nav-button" data-panel="links">
-        Links <span class="nav-badge" id="badge-links">—</span>
-      </button>
-      <button class="nav-button" data-panel="import">
-        Import / Export <span class="nav-badge">CSV</span>
-      </button>
+      <nav id="module-nav"></nav>
     </aside>
 
-    <main class="main-column">
+    <div class="main-column">
+      <main id="module-panels" class="stack"></main>
 
-      <!-- ── DEALS ────────────────────────────────────────────────────────── -->
-      <section id="panel-deals" class="panel-card">
-        <div class="panel-header">
-          <div>
-            <h2>Deals</h2>
-            <p>Create deals with valid pipeline metadata, search by any property,
-               then use "Use in Links" to pre-select a deal in the Links tab.</p>
-          </div>
-          <div class="sub-badge">Stages come from HubSpot</div>
-        </div>
-
-        <div class="grid-2">
-          <article class="section-card">
-            <h3 id="deal-form-title">Create Deal</h3>
-            <p id="deal-form-help">The Stage dropdown updates when you change the Pipeline.</p>
-            <div class="form-grid cols-2">
-              <div>
-                <label for="deal-name">Deal name <span class="label-hint">required</span></label>
-                <input id="deal-name" type="text" placeholder="AI rack upgrade">
-                <div class="field-error" id="err-deal-name">Deal name is required.</div>
-              </div>
-              <div>
-                <label for="deal-amount">Amount</label>
-                <input id="deal-amount" type="text" placeholder="25000">
-              </div>
-              <div>
-                <label for="deal-pipeline">Pipeline</label>
-                <select id="deal-pipeline" disabled></select>
-              </div>
-              <div>
-                <label for="deal-stage">Stage</label>
-                <select id="deal-stage" disabled></select>
-              </div>
-              <div>
-                <label for="deal-close-date">Close date</label>
-                <input id="deal-close-date" type="date">
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-save-deal" class="button button-primary">Create deal</button>
-              <button id="btn-cancel-deal-edit" class="button button-secondary hidden">Cancel edit</button>
-            </div>
-          </article>
-
-          <!-- Deal records table -->
-          <article class="table-card">
-            <div class="table-toolbar">
-              <div>
-                <h3>Deal Records</h3>
-                <p>Click "Use in Links" to pre-select a deal.</p>
-              </div>
-              <span id="deal-count" class="pill">0 deals</span>
-            </div>
-            <div class="table-filters">
-              <input  id="filter-deal-name"     class="filter-input"  type="search" placeholder="Search by name…">
-              <select id="filter-deal-stage"    class="filter-select"><option value="">All stages</option></select>
-              <select id="filter-deal-pipeline" class="filter-select"><option value="">All pipelines</option></select>
-              <button id="btn-clear-deal-filters" class="filter-clear">✕ Clear</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th><th>Stage</th>
-                    <th>Amount</th><th>Pipeline</th><th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="deal-table-body"></tbody>
-              </table>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- ── CONTACTS ──────────────────────────────────────────────────────── -->
-      <section id="panel-contacts" class="panel-card panel-hidden">
-        <div class="panel-header">
-          <div>
-            <h2>Contacts</h2>
-            <p>Contacts are people. Create the person before linking a deal to them.</p>
-          </div>
-          <div class="sub-badge">Create person before linking</div>
-        </div>
-
-        <div class="grid-2">
-          <article class="section-card">
-            <h3 id="contact-form-title">Create Contact</h3>
-            <p>Email is required — HubSpot uses it as the unique key for contacts.</p>
-            <div class="form-grid cols-2">
-              <div>
-                <label for="contact-firstname">First name</label>
-                <input id="contact-firstname" type="text" placeholder="Alice">
-              </div>
-              <div>
-                <label for="contact-lastname">Last name</label>
-                <input id="contact-lastname" type="text" placeholder="Chen">
-              </div>
-              <div>
-                <label for="contact-email">Email <span class="label-hint">required</span></label>
-                <input id="contact-email" type="email" placeholder="alice@example.com">
-                <div class="field-error" id="err-contact-email">Email is required.</div>
-              </div>
-              <div>
-                <label for="contact-phone">Phone</label>
-                <input id="contact-phone" type="text" placeholder="+886-900-000-000">
-              </div>
-              <div>
-                <label for="contact-lifecycle">Lifecycle stage</label>
-                <select id="contact-lifecycle"></select>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-save-contact" class="button button-primary">Create contact</button>
-              <button id="btn-cancel-contact-edit" class="button button-secondary hidden">Cancel edit</button>
-            </div>
-          </article>
-
-          <article class="table-card">
-            <div class="table-toolbar">
-              <div>
-                <h3>Contact Records</h3>
-                <p>Use "Use in Links" to pre-select for association.</p>
-              </div>
-              <span id="contact-count" class="pill">0 contacts</span>
-            </div>
-            <div class="table-filters">
-              <input  id="filter-contact-name"      class="filter-input"  type="search" placeholder="Search by name or email…">
-              <select id="filter-contact-lifecycle" class="filter-select"><option value="">All stages</option></select>
-              <button id="btn-clear-contact-filters" class="filter-clear">✕ Clear</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Name</th><th>Email</th><th>Phone</th><th>Lifecycle</th><th>Actions</th></tr>
-                </thead>
-                <tbody id="contact-table-body"></tbody>
-              </table>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- ── COMPANIES ─────────────────────────────────────────────────────── -->
-      <section id="panel-companies" class="panel-card panel-hidden">
-        <div class="panel-header">
-          <div>
-            <h2>Companies</h2>
-            <p>Companies are organizations. Deals are typically linked to a company
-               before they are meaningful in a CRM.</p>
-          </div>
-          <div class="sub-badge">Create organization first</div>
-        </div>
-
-        <div class="grid-2">
-          <article class="section-card">
-            <h3 id="company-form-title">Create Company</h3>
-            <p>Company name is the anchor. Domain, city, and industry help when browsing records.</p>
-            <div class="form-grid cols-2">
-              <div>
-                <label for="company-name">Company name <span class="label-hint">required</span></label>
-                <input id="company-name" type="text" placeholder="Northwind Data Systems">
-                <div class="field-error" id="err-company-name">Company name is required.</div>
-              </div>
-              <div>
-                <label for="company-domain">Domain</label>
-                <input id="company-domain" type="text" placeholder="northwind.example">
-              </div>
-              <div>
-                <label for="company-city">City</label>
-                <input id="company-city" type="text" placeholder="Taoyuan">
-              </div>
-              <div>
-                <label for="company-industry">Industry</label>
-                <select id="company-industry"></select>
-                <div class="helper">This comes from HubSpot allowed options, so the value is always valid.</div>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-save-company" class="button button-primary">Create company</button>
-              <button id="btn-cancel-company-edit" class="button button-secondary hidden">Cancel edit</button>
-            </div>
-          </article>
-
-          <article class="table-card">
-            <div class="table-toolbar">
-              <div>
-                <h3>Company Records</h3>
-                <p>Use "Use in Links" to pre-select for association.</p>
-              </div>
-              <span id="company-count" class="pill">0 companies</span>
-            </div>
-            <div class="table-filters">
-              <input  id="filter-company-name"     class="filter-input"  type="search" placeholder="Search by name or domain…">
-              <select id="filter-company-industry" class="filter-select"><option value="">All industries</option></select>
-              <button id="btn-clear-company-filters" class="filter-clear">✕ Clear</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Name</th><th>Domain</th><th>City</th><th>Industry</th><th>Actions</th></tr>
-                </thead>
-                <tbody id="company-table-body"></tbody>
-              </table>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- ── LINKS ──────────────────────────────────────────────────────────── -->
-      <section id="panel-links" class="panel-card panel-hidden">
-        <div class="panel-header">
-          <div>
-            <h2>Links</h2>
-            <p>A link never creates a record — it connects an existing deal to an existing
-               contact or company. Every picker is populated from records already in HubSpot.</p>
-          </div>
-          <div class="sub-badge">No hand-typed IDs</div>
-        </div>
-
-        <div class="association-grid">
-          <article class="section-card">
-            <h3>Link Deal → Contact</h3>
-            <p>Select a real deal and a real contact, then create the link.</p>
-            <div class="form-grid">
-              <div>
-                <label for="link-deal-contact">Deal</label>
-                <select id="link-deal-contact"></select>
-              </div>
-              <div>
-                <label for="link-contact">Contact</label>
-                <select id="link-contact"></select>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-link-contact" class="button button-primary">Link to contact</button>
-            </div>
-          </article>
-
-          <article class="section-card">
-            <h3>Link Deal → Company</h3>
-            <p>Select a real deal and a real company, then create the link.</p>
-            <div class="form-grid">
-              <div>
-                <label for="link-deal-company">Deal</label>
-                <select id="link-deal-company"></select>
-              </div>
-              <div>
-                <label for="link-company">Company</label>
-                <select id="link-company"></select>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-link-company" class="button button-primary">Link to company</button>
-            </div>
-          </article>
-        </div>
-
-        <div class="grid-2" style="margin-top: 18px;">
-          <article class="section-card">
-            <h3>View Existing Links</h3>
-            <p>Pick a deal, then load its linked contacts or companies.</p>
-            <div class="form-grid">
-              <div>
-                <label for="association-deal">Deal</label>
-                <select id="association-deal"></select>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-show-contacts"  class="button button-primary">Show linked contacts</button>
-              <button id="btn-show-companies" class="button button-secondary">Show linked companies</button>
-            </div>
-            <div id="association-output" class="association-list">
-              <div class="empty-note">Select a deal above and click a button to see its links.</div>
-            </div>
-          </article>
-
-          <article class="section-card">
-            <h3>How associations work</h3>
-            <p>In HubSpot, deals don't contain contact or company data — they reference them
-               through separate association records. This panel sends a PUT request to create
-               the link and a GET to read it back.</p>
-            <div class="association-item">
-              <strong>Association type IDs</strong>
-              HubSpot uses fixed numeric IDs per object pair: deal→contact = 3, deal→company = 5.
-            </div>
-            <div class="association-item" style="margin-top:10px">
-              <strong>Why dropdowns instead of text inputs</strong>
-              Associations fail silently if you reference an ID that doesn't exist.
-              Dropdowns eliminate that class of error entirely.
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- ── IMPORT / EXPORT ───────────────────────────────────────────────── -->
-      <section id="panel-import" class="panel-card panel-hidden">
-        <div class="panel-header">
-          <div>
-            <h2>Import / Export</h2>
-            <p>Use CSV for round-trip data work. Export current records, edit them in a
-               spreadsheet or SQL flow, preview validation, then apply changes back to HubSpot.</p>
-          </div>
-          <div class="sub-badge">Preview before write</div>
-        </div>
-
-        <div class="grid-2">
-          <article class="section-card">
-            <h3>Export CSV</h3>
-            <p>Exports include <span class="mono">record_id</span>. Keep that column to
-               update existing HubSpot records later.</p>
-            <div class="form-grid">
-              <div>
-                <label for="export-object-type">Object type</label>
-                <select id="export-object-type">
-                  <option value="deals">Deals</option>
-                  <option value="contacts">Contacts</option>
-                  <option value="companies">Companies</option>
-                </select>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-export-data"       class="button button-primary">Download export</button>
-              <button id="btn-download-template" class="button button-secondary">Download template</button>
-            </div>
-            <div class="helper">
-              Professional round-trip pattern: export → edit → preview → apply.
-              Template downloads only the approved columns.
-            </div>
-          </article>
-
-          <article class="section-card">
-            <h3>Import CSV</h3>
-            <p>Preview validates headers, required fields, HubSpot pipeline/stage values,
-               company industry options, email format, dates, and numeric amounts before
-               any write runs.</p>
-            <div class="form-grid">
-              <div>
-                <label for="import-object-type">Object type</label>
-                <select id="import-object-type">
-                  <option value="deals">Deals</option>
-                  <option value="contacts">Contacts</option>
-                  <option value="companies">Companies</option>
-                </select>
-              </div>
-              <div>
-                <label for="import-file">CSV file</label>
-                <input id="import-file" type="file" accept=".csv,text/csv">
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-preview-import" class="button button-primary">Preview import</button>
-              <button id="btn-apply-import"   class="button button-secondary" disabled>Apply to HubSpot</button>
-            </div>
-            <div class="helper">
-              Blank <span class="mono">record_id</span> means create.
-              Existing <span class="mono">record_id</span> means update that HubSpot record.
-            </div>
-          </article>
-        </div>
-
-        <article class="table-card" style="margin-top: 18px;">
-          <div class="table-toolbar">
-            <div>
-              <h3>Import Preview</h3>
-              <p>Every row must be valid before the apply button is enabled.</p>
-            </div>
-            <span id="import-preview-count" class="pill">No preview yet</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr><th>Row</th><th>Action</th><th>Record ID</th><th>Status</th><th>Details</th></tr>
-              </thead>
-              <tbody id="import-preview-body"></tbody>
-            </table>
-          </div>
-        </article>
-      </section>
-
-      <!-- ── API Result ─────────────────────────────────────────────────────── -->
       <section class="result-card">
         <div class="panel-header" style="margin-bottom: 0;">
           <div>
@@ -474,18 +50,16 @@
             <p>Raw JSON response from the last API call.</p>
           </div>
           <div class="actions" style="margin-top: 0;">
-            <button id="btn-refresh-all"  class="button button-secondary">Refresh everything</button>
+            <button id="btn-refresh-all" class="button button-secondary">Refresh everything</button>
             <button id="btn-clear-result" class="button button-secondary">Clear</button>
           </div>
         </div>
-        <pre id="result">// Results will appear here…</pre>
+        <pre id="result">// Results will appear here...</pre>
       </section>
-
-    </main>
+    </div>
   </section>
 </div>
 
-<!-- type="module" defers execution until DOM is ready and enables ES import/export -->
 <script type="module" src="js/app.js"></script>
 </body>
 </html>
