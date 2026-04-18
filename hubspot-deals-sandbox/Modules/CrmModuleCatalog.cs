@@ -40,8 +40,6 @@ public static class CrmModuleCatalog
             enabledModules.Add(module);
         }
 
-        return enabledModules
-            .OrderBy(module => module.NavOrder)
-            .ToArray();
+        return enabledModules.ToArray();
     }
 }

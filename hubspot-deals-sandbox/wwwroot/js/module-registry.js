@@ -12,9 +12,8 @@ export async function loadModules() {
       return importedModule.default;
     }));
 
-    state.loadedModules = loadedModules
-      .slice()
-      .sort((left, right) => left.navOrder - right.navOrder);
+    // Preserve server order — user controls order via Settings panel
+    state.loadedModules = loadedModules;
 
     const navHost = document.getElementById('module-nav');
     const panelHost = document.getElementById('module-panels');

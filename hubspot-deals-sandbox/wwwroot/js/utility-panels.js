@@ -557,6 +557,14 @@ function createImportDescriptor() {
   };
 }
 
+function refreshOrderButtons(list) {
+  const rows = [...list.querySelectorAll('.module-toggle-row')];
+  rows.forEach((row, i) => {
+    row.querySelector('[data-dir="up"]').disabled   = i === 0;
+    row.querySelector('[data-dir="down"]').disabled = i === rows.length - 1;
+  });
+}
+
 function createSettingsDescriptor(availableModules) {
   return {
     id: 'settings',
@@ -569,25 +577,27 @@ function createSettingsDescriptor(availableModules) {
         <div class="panel-header">
           <div>
             <h2>Module Settings</h2>
-            <p>Enable or disable CRM modules. Changes are saved to
-               <span class="mono">appsettings.json</span> and take effect after a server restart.</p>
+            <p>Enable or disable modules and drag them into the order you want.
+               Changes are saved to <span class="mono">appsettings.json</span>
+               and take effect after a server restart.</p>
           </div>
           <div class="sub-badge">Requires restart</div>
         </div>
 
         <div class="grid-2">
           <article class="section-card">
-            <h3>Available Modules</h3>
-            <p>Check the modules you want active. At least one must stay enabled.</p>
-            <div class="module-toggle-list">
-              ${availableModules.map(m => `
-                <label class="module-toggle-row">
+            <h3>Modules</h3>
+            <p>Check to enable. Use ↑ ↓ to set sidebar order.</p>
+            <div id="module-order-list" class="module-toggle-list">
+              ${availableModules.map((m, i) => `
+                <div class="module-toggle-row" data-module-id="${m.id}">
                   <input type="checkbox" class="module-checkbox" value="${m.id}" ${m.enabled ? 'checked' : ''}>
                   <span class="module-toggle-label">${m.label}</span>
-                  ${m.enabled
-                    ? '<span class="pill">active</span>'
-                    : '<span class="pill" style="background:var(--line);color:var(--muted)">disabled</span>'}
-                </label>`).join('')}
+                  <div class="module-order-btns">
+                    <button class="module-order-btn" data-dir="up"   ${i === 0 ? 'disabled' : ''}>↑</button>
+                    <button class="module-order-btn" data-dir="down" ${i === availableModules.length - 1 ? 'disabled' : ''}>↓</button>
+                  </div>
+                </div>`).join('')}
             </div>
             <div class="actions" style="margin-top:20px">
               <button id="btn-save-modules" class="button button-primary">Save changes</button>
@@ -612,16 +622,32 @@ function createSettingsDescriptor(availableModules) {
         </div>
       </section>`,
     mount(container) {
+      const list = container.querySelector('#module-order-list');
+
+      list.addEventListener('click', e => {
+        const btn = e.target.closest('.module-order-btn');
+        if (!btn) return;
+        const row  = btn.closest('.module-toggle-row');
+        const dir  = btn.dataset.dir;
+        const sibling = dir === 'up' ? row.previousElementSibling : row.nextElementSibling;
+        if (!sibling) return;
+        if (dir === 'up') list.insertBefore(row, sibling);
+        else              list.insertBefore(sibling, row);
+        refreshOrderButtons(list);
+      });
+
       container.querySelector('#btn-save-modules')?.addEventListener('click', async event => {
         const btn = event.currentTarget;
-        const selected = [...container.querySelectorAll('.module-checkbox:checked')].map(cb => cb.value);
-        if (!selected.length) {
-          toast('Select at least one module.', 'error');
+        const ordered = [...list.querySelectorAll('.module-toggle-row')]
+          .filter(row => row.querySelector('.module-checkbox').checked)
+          .map(row => row.dataset.moduleId);
+        if (!ordered.length) {
+          toast('Enable at least one module.', 'error');
           return;
         }
         setLoading(btn, true);
         try {
-          const result = await apiFetch('/api/modules', 'POST', selected);
+          const result = await apiFetch('/api/modules', 'POST', ordered);
           toast(result.message ?? 'Saved. Restart the server to apply.', 'success');
         } catch (error) {
           toast('Failed to save: ' + normalizeApiError(error), 'error');
