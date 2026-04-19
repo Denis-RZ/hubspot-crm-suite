@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(taskkill /F /IM HubSpotDealsSandbox.exe)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5100/api/modules)",
+      "Bash(powershell -Command \"[System.Environment]::GetEnvironmentVariable\\('HUBSPOT_ACCESS_TOKEN', 'User'\\) | Out-String\")",
+      "Bash(powershell -Command \"[System.Environment]::GetEnvironmentVariable\\('HUBSPOT_ACCESS_TOKEN', 'Machine'\\)\")",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_console_messages",
+      "Bash(grep -v \"^//\")",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
