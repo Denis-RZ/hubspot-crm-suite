@@ -10,8 +10,10 @@ import {
 import { refreshAll } from '../runtime.js';
 import { state } from '../state.js';
 import { setError, setLoading, setResult, showPanel, toast, validateRequired } from '../ui.js';
-import { linksPanelAvailable, useDealInLinks } from '../utility-panels.js';
+import { linksPanelAvailable } from '../utility-panels.js';
+import { openAssociateModal } from '../associate-modal.js';
 import { cancelInlineEdit, cancelAnyOpenEdit } from '../inline-edit.js';
+import { getPage, setPage, resetPage, clampPage, getPageSize, setPageSize } from '../pagination.js';
 
 function resetDealForm() {
   clearDealForm();
@@ -42,6 +44,8 @@ function renderDealUi() {
 
   renderDealTable(state.visibleDeals, state.searchActive, {
     linksEnabled: linksPanelAvailable(),
+    page: clampPage('deals', state.visibleDeals.length),
+    pageSize: getPageSize('deals'),
   });
 }
 
@@ -129,8 +133,10 @@ function applyDealFilters() {
     : [...state.deals];
 
   state.searchActive = isActive;
+  resetPage('deals');
   renderDealTable(state.visibleDeals, isActive, {
     linksEnabled: linksPanelAvailable(),
+    page: 1,
   });
 }
 
@@ -207,7 +213,7 @@ export default {
           <div>
             <h2>Deals</h2>
             <p>Create deals with valid pipeline metadata, search by any property,
-               then use "Use in Links" to pre-select a deal in the Links tab.</p>
+               then use <strong>Associate…</strong> in the ⋯ menu to link it to a contact or company.</p>
           </div>
           <div class="sub-badge">Stages come from HubSpot</div>
         </div>
@@ -249,7 +255,7 @@ export default {
             <div class="table-toolbar">
               <div>
                 <h3>Deal Records</h3>
-                <p>Click "Use in Links" to pre-select a deal.</p>
+                <p>Use ⋯ → <strong>Associate…</strong> to link a deal to a contact or company.</p>
               </div>
               <span id="deal-count" class="pill">0 deals</span>
             </div>
@@ -270,6 +276,7 @@ export default {
                 <tbody id="deal-table-body"></tbody>
               </table>
             </div>
+            <div id="deal-paginator"></div>
           </article>
         </div>
       </section>`;
@@ -290,11 +297,28 @@ export default {
 
       const { action, id } = button.dataset;
       if (action === 'clear-deal-filters') clearDealFilters();
-      if (action === 'use-deal-links') useDealInLinks(id);
+      if (action === 'associate-deal') {
+        const deal = state.deals.find(d => d.id === id);
+        openAssociateModal('deal', id, deal?.properties.dealname || id);
+      }
       if (action === 'edit-deal') startInlineEditDeal(id);
       if (action === 'delete-deal') await deleteDeal(id, button);
       if (action === 'save-deal-inline') await saveInlineEditDeal(id, button);
       if (action === 'cancel-inline') cancelInlineEdit(id);
+    });
+
+    container.addEventListener('click', event => {
+      const btn = event.target.closest('button[data-action="goto-page"]');
+      if (!btn) return;
+      setPage('deals', parseInt(btn.dataset.page, 10));
+      renderDealUi();
+    });
+    container.addEventListener('change', event => {
+      const sel = event.target.closest('select[data-action="change-page-size"]');
+      if (!sel) return;
+      setPageSize('deals', sel.value);
+      resetPage('deals');
+      renderDealUi();
     });
 
     document.addEventListener('crm:data-refreshed', renderDealUi);

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>deal-audit.plugin</AssemblyName>
+    <RootNamespace>HubSpotPlugin.DealAudit</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\hubspot-sandbox-plugin-abstractions\HubSpotSandbox.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Output as notes.plugin.dll so the registry picks it up -->
+    <AssemblyName>notes.plugin</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\hubspot-sandbox-plugin-abstractions\HubSpotSandbox.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

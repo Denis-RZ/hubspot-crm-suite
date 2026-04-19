@@ -2,6 +2,7 @@ import { clearResult, initLiveValidation, setError, showPanel, toast } from './u
 import { loadModules } from './module-registry.js';
 import { refreshAll } from './runtime.js';
 import { mountUtilityPanels } from './utility-panels.js';
+import { initAssociateModal } from './associate-modal.js';
 
 function initActionMenus() {
   document.addEventListener('click', event => {
@@ -44,6 +45,7 @@ function initShellListeners() {
 
 async function initializeApp() {
   initActionMenus();
+  initAssociateModal();
   initLiveValidation();
 
   try {

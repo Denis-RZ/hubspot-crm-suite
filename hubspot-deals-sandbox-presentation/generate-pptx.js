@@ -22,9 +22,11 @@ const COLORS = {
 const ROOT = __dirname;
 const SHOTS = {
   deals: path.join(ROOT, "screenshots", "deals-panel.png"),
+  contacts: path.join(ROOT, "screenshots", "contacts-panel.png"),
   companies: path.join(ROOT, "screenshots", "companies-panel.png"),
   links: path.join(ROOT, "screenshots", "links-panel.png"),
   import: path.join(ROOT, "screenshots", "import-panel.png"),
+  settings: path.join(ROOT, "screenshots", "settings-panel.png"),
 };
 const OUTPUT = path.join(ROOT, "HubSpot-CRM-Integration-Candidate-Deck.pptx");
 
@@ -376,7 +378,7 @@ function slide3() {
   addBulletCard(slide, 0.52, 4.85, 5.75, 0.95, "3", "商機關聯：把 deal 與 company / contact 串起來。", "Association workflow that links deals to companies and contacts.");
   addBulletCard(slide, 0.52, 6.0, 5.75, 0.95, "4", "CSV 匯入匯出：樣板、匯出、預覽、套用。", "CSV import/export with template, export, preview, and apply steps.");
 
-  addScreenshot(slide, SHOTS.deals, 6.75, 1.55, 6.1, 5.55);
+  addScreenshot(slide, SHOTS.contacts, 6.75, 1.55, 6.1, 5.55);
 }
 
 function slide4() {
@@ -419,23 +421,23 @@ function slide5() {
     9.2
   );
 
-  addScreenshot(slide, SHOTS.links, 0.55, 2.18, 5.95, 3.4);
-  addScreenshot(slide, SHOTS.import, 6.83, 2.18, 5.95, 3.4);
+  addScreenshot(slide, SHOTS.links, 0.55, 2.12, 5.95, 2.72);
+  addScreenshot(slide, SHOTS.import, 6.83, 2.12, 5.95, 2.72);
 
-  addBulletCard(slide, 0.55, 5.88, 3.9, 0.88, "1", "Links 畫面說明 deal 不該孤立存在，必須連到真實公司與窗口。", "The links screen shows that a deal should be connected to a real company and real contact.");
-  addBulletCard(slide, 4.62, 5.88, 4.05, 0.88, "2", "Import 畫面把 CSV 變成可驗證、可預覽、可說明的流程。", "The import screen turns CSV into a workflow that can be validated, previewed, and explained.");
-  addBulletCard(slide, 8.84, 5.88, 3.94, 0.88, "3", "這部分最接近 CRM / ERP integration 職位會在意的能力。", "This is the part closest to what CRM / ERP integration roles usually care about.");
+  addBulletCard(slide, 0.55, 5.05, 3.9, 0.92, "1", "Links 畫面說明 deal 不該孤立存在，必須連到真實公司與窗口。", "The links screen shows that a deal should be connected to a real company and real contact.");
+  addBulletCard(slide, 4.62, 5.05, 4.05, 0.92, "2", "Import 畫面把 CSV 變成可驗證、可預覽、可說明的流程。", "The import screen turns CSV into a workflow that can be validated, previewed, and explained.");
+  addBulletCard(slide, 8.84, 5.05, 3.94, 0.92, "3", "這部分最接近 CRM / ERP integration 職位會在意的能力。", "This is the part closest to what CRM / ERP integration roles usually care about.");
 }
 
 function slide6() {
   const slide = pptx.addSlide();
   addSlideBase(slide);
   addEyebrow(slide, "TECHNICAL VIEW", 0.48, 0.32, 1.7);
-  addTitle(slide, "技術設計與專業化方向", "Technical Design and Next Professional Step", 0.48, 0.82, 6.6);
+  addTitle(slide, "模組架構與技術設計", "Module Architecture and Technical Design", 0.48, 0.82, 6.6);
   addPairParagraph(
     slide,
-    "目前版本是可展示、可運作的 prototype；如果往專業 CRM integration 方向走，下一步就是加入 SQL staging、audit 與 import history。",
-    "The current version is a working prototype suitable for interviews. The next professional step is SQL staging, audit logging, and import history.",
+    "系統採用可插拔模組架構：每個 CRM 物件是獨立模組，由 appsettings.json 控制啟用與排序，無需重新編譯即可調整。",
+    "The system uses a plug-in module architecture. Each CRM object is an independent module, enabled and ordered via appsettings.json without recompiling.",
     0.5,
     1.62,
     6.4,
@@ -443,24 +445,24 @@ function slide6() {
     9.2
   );
 
-  addSectionCard(slide, 0.55, 2.28, 5.95, 4.55, "目前架構", "Current structure");
+  addSectionCard(slide, 0.55, 2.28, 5.95, 3.42, "模組系統設計", "Module system design");
   const archX = 0.92;
   [
-    ["瀏覽器 UI", "Browser UI", 2.75],
-    ["ASP.NET Core API", "ASP.NET Core demo layer", 3.57],
-    ["驗證與 CSV 服務", "Validation and CSV workflow", 4.39],
-    ["HubSpot Sandbox", "Live HubSpot sandbox data", 5.21],
+    ["ICrmSandboxModule 介面", "Shared interface: Id, NavOrder, MapRoutes", 2.72],
+    ["CrmModuleCatalog 自動探索", "Reflection-based discovery at startup", 3.36],
+    ["appsettings.json 控制啟用與順序", "Config drives enabled set and sidebar order", 4.0],
+    ["Settings UI 即時管理", "Settings panel: toggle + reorder + auto-restart", 4.64],
   ].forEach(([zh, en, y], idx) => {
-    addCard(slide, archX, y, 5.18, 0.56, idx === 2 ? COLORS.surface : COLORS.white);
-    addPairParagraph(slide, zh, en, archX + 0.18, y + 0.1, 4.8, 9.4, 8.6);
+    addCard(slide, archX, y, 5.18, 0.5, idx === 3 ? COLORS.accentSoft : COLORS.white);
+    addPairParagraph(slide, zh, en, archX + 0.18, y + 0.09, 4.8, 9.2, 8.4);
     if (idx < 3) {
       slide.addText("↓", {
         x: archX + 2.45,
-        y: y + 0.56,
+        y: y + 0.5,
         w: 0.3,
-        h: 0.18,
+        h: 0.16,
         fontFace: FONT,
-        fontSize: 16,
+        fontSize: 14,
         bold: true,
         color: COLORS.accent,
         align: "center",
@@ -469,18 +471,9 @@ function slide6() {
     }
   });
 
-  addSectionCard(slide, 6.82, 2.28, 5.95, 4.55, "下一步專業化", "Next step toward production-like integration");
-  addBulletCard(slide, 7.05, 2.78, 5.5, 0.72, "A", "加入 SQLite / SQL staging，先存再驗證再套用。", "Add SQLite / SQL staging so import can be stored, validated, and then applied.");
-  addBulletCard(slide, 7.05, 3.68, 5.5, 0.72, "B", "保留 import job、row-level error、audit trail。", "Keep import jobs, row-level errors, and audit trail.");
-  addBulletCard(slide, 7.05, 4.58, 5.5, 0.72, "C", "支援 retry、deduplication、history 查詢。", "Support retry, deduplication, and history lookup.");
-  addValueBanner(
-    slide,
-    7.05,
-    5.6,
-    5.5,
-    "這會把作品從 demo 提升到更像真實內部系統或 CRM integration stand。",
-    "This is what would move the work from a demo toward a more realistic internal system or CRM integration stand."
-  );
+  addScreenshot(slide, SHOTS.settings, 6.82, 1.98, 6.1, 3.5);
+  addBulletCard(slide, 6.82, 5.65, 2.85, 0.78, "A", "模組啟用後自動重啟伺服器。", "Saving triggers a server auto-restart.");
+  addBulletCard(slide, 9.84, 5.65, 2.95, 0.78, "B", "新增模組不需改 HTML 或路由。", "New modules need no HTML or route changes.");
 }
 
 function slide7() {

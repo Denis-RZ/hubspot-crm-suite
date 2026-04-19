@@ -6,6 +6,7 @@ using HubSpotDealsSandbox.HubSpot;
 using HubSpotDealsSandbox.HubSpot.Models;
 using HubSpotDealsSandbox.ImportExport;
 using HubSpotDealsSandbox.Modules;
+using HubSpotDealsSandbox.Plugins;
 
 var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
 {
@@ -353,6 +354,7 @@ async Task RunWebAsync(string accessToken)
             accessToken));
     builder.Services.AddSingleton(new ModuleAvailability(enabledModules));
     builder.Services.AddSingleton<CrmCsvService>();
+    builder.Services.AddSingleton<PluginRegistry>();
 
     foreach (var module in enabledModules)
     {
@@ -360,6 +362,9 @@ async Task RunWebAsync(string accessToken)
     }
 
     var app = builder.Build();
+
+    // Load any plugins that were previously installed
+    app.Services.GetRequiredService<PluginRegistry>().LoadFromDirectory();
 
     app.Use(async (context, next) =>
     {
@@ -374,8 +379,8 @@ async Task RunWebAsync(string accessToken)
     app.UseStaticFiles();
 
     app.MapGet("/api/modules", () =>
-        Results.Ok(enabledModules.Select(module =>
-            new EnabledModuleDescriptor(module.Id, module.Label, module.NavOrder))));
+        Results.Ok(enabledModules.Select((module, index) =>
+            new EnabledModuleDescriptor(module.Id, module.Label, (index + 1) * 100))));
 
     var allModules = CrmModuleCatalog.DiscoverAllModules(Assembly.GetExecutingAssembly());
 
@@ -398,10 +403,12 @@ async Task RunWebAsync(string accessToken)
     });
 
     app.MapPost("/api/modules", async (
-        string[] moduleIds,
+        ModuleSettingsRequest request,
         IWebHostEnvironment env,
-        IHostApplicationLifetime lifetime) =>
+        IHostApplicationLifetime lifetime,
+        PluginRegistry plugins) =>
     {
+        var moduleIds = request.Modules;
         if (moduleIds.Length == 0)
             return Results.BadRequest(new { error = "At least one module must be enabled." });
 
@@ -409,6 +416,23 @@ async Task RunWebAsync(string accessToken)
         var unknown  = moduleIds.Where(id => !validIds.Contains(id)).ToArray();
         if (unknown.Length > 0)
             return Results.BadRequest(new { error = $"Unknown module(s): {string.Join(", ", unknown)}" });
+
+        if (request.Plugins is not null)
+        {
+            var pluginOrders = request.Plugins
+                .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+                .GroupBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Last().NavOrder,
+                    StringComparer.OrdinalIgnoreCase);
+
+            var unknownPlugins = plugins.SaveOrder(pluginOrders);
+            if (unknownPlugins.Length > 0)
+            {
+                return Results.BadRequest(new { error = $"Unknown plugin(s): {string.Join(", ", unknownPlugins)}" });
+            }
+        }
 
         var settingsPath = Path.Combine(env.ContentRootPath, "appsettings.json");
         var json = System.Text.Json.JsonSerializer.Serialize(
@@ -542,6 +566,62 @@ async Task RunWebAsync(string accessToken)
         module.MapEndpoints(app);
     }
 
+    // ── Plugin API ─────────────────────────────────────────────────────────────
+
+    app.MapGet("/api/admin/plugins", (PluginRegistry plugins) =>
+        Results.Ok(plugins.All.Select(m => new { m.Id, m.Label, m.NavOrder })));
+
+    app.MapPost("/api/admin/plugins/upload", async (HttpRequest request, PluginRegistry plugins) =>
+        await ApiEndpointHelpers.ExecuteAsync(async () =>
+        {
+            if (!request.HasFormContentType)
+                return Results.BadRequest(new { error = "Multipart form required." });
+
+            var form = await request.ReadFormAsync();
+            var file = form.Files.GetFile("file");
+            if (file is null)
+                return Results.BadRequest(new { error = "No file uploaded. Field name: 'file'." });
+
+            if (!file.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new { error = "Only .zip files are accepted." });
+
+            await using var stream = file.OpenReadStream();
+            var id = await plugins.InstallZipAsync(stream);
+            return Results.Ok(new { id, message = $"Plugin '{id}' installed successfully." });
+        }));
+
+    app.MapDelete("/api/admin/plugins/{id}", (string id, PluginRegistry plugins) =>
+        plugins.Unload(id)
+            ? Results.Ok(new { message = $"Plugin '{id}' unloaded." })
+            : Results.NotFound(new { error = $"Plugin '{id}' not found." }));
+
+    // Dispatcher — handles all HTTP methods for plugin actions
+    app.Map("/api/plugin/{moduleId}/{**action}", async (
+        string moduleId,
+        string action,
+        HttpContext ctx,
+        PluginRegistry plugins) =>
+    {
+        if (!plugins.TryGet(moduleId, out var module) || module is null)
+            return Results.NotFound(new { error = $"Plugin '{moduleId}' is not loaded." });
+
+        try
+        {
+            var actionParts = action.Split('/', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (actionParts.Length == 0)
+                return Results.BadRequest(new { error = "Plugin action is required." });
+
+            ctx.Request.RouteValues["pluginTail"] =
+                actionParts.Length == 2 ? actionParts[1] : string.Empty;
+
+            var result = await module.HandleAsync(actionParts[0], ctx.Request, ctx.RequestAborted);
+            return Results.Ok(result);
+        }
+        catch (NotSupportedException ex) { return Results.BadRequest(new { error = ex.Message }); }
+        catch (ArgumentException ex)     { return Results.BadRequest(new { error = ex.Message }); }
+        catch (Exception ex)             { return Results.Problem(ex.Message); }
+    });
+
     app.Lifetime.ApplicationStarted.Register(() =>
     {
         Console.WriteLine("Web UI running at http://localhost:5100");
@@ -562,3 +642,7 @@ async Task RunWebAsync(string accessToken)
 
     await app.RunAsync();
 }
+
+public sealed record ModuleSettingsRequest(string[] Modules, PluginOrderRequest[]? Plugins);
+
+public sealed record PluginOrderRequest(string Id, int NavOrder);

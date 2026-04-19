@@ -1,8 +1,9 @@
 @echo off
 setlocal
 
-rem Start the local HubSpot CRM sandbox if it is not already running.
-rem If the server is already listening on port 5100, just open the browser.
+rem Start the local HubSpot CRM sandbox.
+rem First stop any stale sandbox process from this project so rebuilds do not
+rem fail on a locked HubSpotDealsSandbox.exe.
 
 set "SCRIPT_DIR=%~dp0"
 set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
@@ -12,6 +13,12 @@ set "STDOUT_LOG=%SCRIPT_DIR%\webserver.stdout.log"
 set "STDERR_LOG=%SCRIPT_DIR%\webserver.stderr.log"
 
 pushd "%SCRIPT_DIR%" >nul
+
+call "%SCRIPT_DIR%\Stop-HubSpotCrmSandbox.bat" /quiet
+if errorlevel 1 (
+    popd >nul
+    exit /b 1
+)
 
 if not defined HUBSPOT_ACCESS_TOKEN (
     for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$readme = Join-Path '%SCRIPT_DIR%' 'README.md'; if (Test-Path $readme) { $m = [regex]::Match((Get-Content -Raw $readme), 'pat-[A-Za-z0-9\\-]+'); if ($m.Success) { $m.Value } }"`) do (
@@ -25,14 +32,6 @@ if not defined HUBSPOT_ACCESS_TOKEN (
     echo   set HUBSPOT_ACCESS_TOKEN=your-token
     popd >nul
     exit /b 1
-)
-
-call :GetListeningPid "%PORT%" RUNNING_PID
-if defined RUNNING_PID (
-    echo HubSpot CRM Sandbox is already running on %URL% ^(PID %RUNNING_PID%^).
-    start "" "%URL%"
-    popd >nul
-    exit /b 0
 )
 
 echo Starting HubSpot CRM Sandbox on %URL% ...

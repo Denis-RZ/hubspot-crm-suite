@@ -16,8 +16,10 @@ import {
 import { refreshAll } from '../runtime.js';
 import { state } from '../state.js';
 import { setError, setLoading, setResult, showPanel, toast, validateRequired } from '../ui.js';
-import { linksPanelAvailable, useCompanyInLinks } from '../utility-panels.js';
+import { linksPanelAvailable } from '../utility-panels.js';
+import { openAssociateModal } from '../associate-modal.js';
 import { cancelInlineEdit, cancelAnyOpenEdit } from '../inline-edit.js';
+import { getPage, setPage, resetPage, clampPage, getPageSize, setPageSize } from '../pagination.js';
 
 function getIndustryOptions() {
   return state.companyIndustryOptions.length
@@ -45,6 +47,8 @@ function renderCompanyUi() {
 
   renderCompanyTable(state.companies, {
     linksEnabled: linksPanelAvailable(),
+    page: clampPage('companies', state.companies.length),
+    pageSize: getPageSize('companies'),
   });
 }
 
@@ -132,6 +136,7 @@ function applyCompanyFilters() {
     })
     : state.companies;
 
+  resetPage('companies');
   renderCompanyTable(visibleCompanies, {
     linksEnabled: linksPanelAvailable(),
     countClass: isActive ? 'pill filter-active' : 'pill',
@@ -139,6 +144,8 @@ function applyCompanyFilters() {
     emptyMessage: isActive
       ? 'No companies match the current filters.'
       : 'No companies yet.<br>Create the first company using the form on the left.',
+    page: 1,
+    pageSize: getPageSize('companies'),
   });
 }
 
@@ -266,6 +273,7 @@ export default {
                 <tbody id="company-table-body"></tbody>
               </table>
             </div>
+            <div id="company-paginator"></div>
           </article>
         </div>
       </section>`;
@@ -282,11 +290,28 @@ export default {
       if (!button) return;
 
       const { action, id } = button.dataset;
-      if (action === 'use-company-links') useCompanyInLinks(id);
+      if (action === 'associate-company') {
+        const co = state.companies.find(x => x.id === id);
+        openAssociateModal('company', id, co?.properties.name || id);
+      }
       if (action === 'edit-company') startInlineEditCompany(id);
       if (action === 'delete-company') await deleteCompany(id, button);
       if (action === 'save-company-inline') await saveInlineEditCompany(id, button);
       if (action === 'cancel-inline') cancelInlineEdit(id);
+    });
+
+    container.addEventListener('click', event => {
+      const btn = event.target.closest('button[data-action="goto-page"]');
+      if (!btn) return;
+      setPage('companies', parseInt(btn.dataset.page, 10));
+      renderCompanyUi();
+    });
+    container.addEventListener('change', event => {
+      const sel = event.target.closest('select[data-action="change-page-size"]');
+      if (!sel) return;
+      setPageSize('companies', sel.value);
+      resetPage('companies');
+      renderCompanyUi();
     });
 
     document.addEventListener('crm:data-refreshed', renderCompanyUi);

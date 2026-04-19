@@ -16,8 +16,10 @@ import {
 import { refreshAll } from '../runtime.js';
 import { state } from '../state.js';
 import { setError, setLoading, setResult, showPanel, toast, validateRequired } from '../ui.js';
-import { linksPanelAvailable, useContactInLinks } from '../utility-panels.js';
+import { linksPanelAvailable } from '../utility-panels.js';
+import { openAssociateModal } from '../associate-modal.js';
 import { cancelInlineEdit, cancelAnyOpenEdit } from '../inline-edit.js';
+import { getPage, setPage, resetPage, clampPage, getPageSize, setPageSize } from '../pagination.js';
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Enter a valid email address.';
@@ -42,6 +44,8 @@ function renderContactUi() {
 
   renderContactTable(state.contacts, {
     linksEnabled: linksPanelAvailable(),
+    page: clampPage('contacts', state.contacts.length),
+    pageSize: getPageSize('contacts'),
   });
 }
 
@@ -131,6 +135,7 @@ function applyContactFilters() {
     })
     : state.contacts;
 
+  resetPage('contacts');
   renderContactTable(visibleContacts, {
     linksEnabled: linksPanelAvailable(),
     countClass: isActive ? 'pill filter-active' : 'pill',
@@ -138,6 +143,8 @@ function applyContactFilters() {
     emptyMessage: isActive
       ? 'No contacts match the current filters.'
       : 'No contacts yet.<br>Create the first contact using the form on the left.',
+    page: 1,
+    pageSize: getPageSize('contacts'),
   });
 }
 
@@ -277,6 +284,7 @@ export default {
                 <tbody id="contact-table-body"></tbody>
               </table>
             </div>
+            <div id="contact-paginator"></div>
           </article>
         </div>
       </section>`;
@@ -293,11 +301,29 @@ export default {
       if (!button) return;
 
       const { action, id } = button.dataset;
-      if (action === 'use-contact-links') useContactInLinks(id);
+      if (action === 'associate-contact') {
+        const c = state.contacts.find(x => x.id === id);
+        const name = [c?.properties.firstname, c?.properties.lastname].filter(Boolean).join(' ') || id;
+        openAssociateModal('contact', id, name);
+      }
       if (action === 'edit-contact') startInlineEditContact(id);
       if (action === 'delete-contact') await deleteContact(id, button);
       if (action === 'save-contact-inline') await saveInlineEditContact(id, button);
       if (action === 'cancel-inline') cancelInlineEdit(id);
+    });
+
+    container.addEventListener('click', event => {
+      const btn = event.target.closest('button[data-action="goto-page"]');
+      if (!btn) return;
+      setPage('contacts', parseInt(btn.dataset.page, 10));
+      renderContactUi();
+    });
+    container.addEventListener('change', event => {
+      const sel = event.target.closest('select[data-action="change-page-size"]');
+      if (!sel) return;
+      setPageSize('contacts', sel.value);
+      resetPage('contacts');
+      renderContactUi();
     });
 
     document.addEventListener('crm:data-refreshed', renderContactUi);

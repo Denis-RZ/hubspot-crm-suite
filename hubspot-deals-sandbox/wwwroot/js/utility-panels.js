@@ -1,4 +1,5 @@
 import { apiFetch, normalizeApiError } from './api.js';
+import { getDisabledPluginIds } from './module-registry.js';
 import { buildCsvRow, CSV_COLUMNS, parseCSV, validateImportRow } from './csv.js';
 import {
   renderAssociationPlaceholder,
@@ -10,6 +11,66 @@ import {
 import { refreshAll } from './runtime.js';
 import { state } from './state.js';
 import { readValue, setError, setLoading, setResult, showPanel, toast } from './ui.js';
+
+const DISABLED_PLUGINS_KEY  = 'crm-disabled-plugins';
+const DISABLED_UTILITY_KEY  = 'crm-disabled-utility';
+const UTILITY_ORDER_KEY     = 'crm-utility-order';
+
+const _descriptorCache = new Map(); // id → utility descriptor
+
+function getDisabledUtilityIds() {
+  try { return JSON.parse(localStorage.getItem(DISABLED_UTILITY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function getStoredUtilityOrder() {
+  try { return JSON.parse(localStorage.getItem(UTILITY_ORDER_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function buildUtilityRow(desc, enabled) {
+  const navOrder = desc._navOrder ?? 9500;
+  return `
+    <div class="module-toggle-row" data-utility-id="${desc.id}" data-nav-order="${navOrder}">
+      <input type="checkbox" class="module-checkbox utility-toggle" value="${desc.id}" ${enabled ? 'checked' : ''}>
+      <span class="module-toggle-label">
+        ${desc.label ?? desc.id}
+        <span class="utility-badge">Auto</span>
+      </span>
+      <div class="module-order-btns">
+        <button class="module-order-btn" data-dir="up">↑</button>
+        <button class="module-order-btn" data-dir="down">↓</button>
+      </div>
+    </div>`;
+}
+
+function setPluginDisabled(id) {
+  const list = getDisabledPluginIds();
+  if (!list.includes(id)) {
+    localStorage.setItem(DISABLED_PLUGINS_KEY, JSON.stringify([...list, id]));
+  }
+}
+
+function setPluginEnabled(id) {
+  localStorage.setItem(DISABLED_PLUGINS_KEY,
+    JSON.stringify(getDisabledPluginIds().filter(d => d !== id)));
+}
+
+function buildPluginRow(p, enabled) {
+  return `
+    <div class="module-toggle-row" data-plugin-id="${p.id}" data-nav-order="${p.navOrder}">
+      <input type="checkbox" class="module-checkbox plugin-toggle" value="${p.id}" ${enabled ? 'checked' : ''}>
+      <span class="module-toggle-label">
+        ${p.label ?? p.id}
+        <span class="plugin-badge">Plugin</span>
+      </span>
+      <div class="module-order-btns">
+        <button class="module-order-btn" data-dir="up">↑</button>
+        <button class="module-order-btn" data-dir="down">↓</button>
+        <button data-unload-id="${p.id}" class="plugin-delete-btn">Delete</button>
+      </div>
+    </div>`;
+}
 
 function getEnabledCsvObjectTypes() {
   return state.enabledModules.filter(moduleId => CSV_COLUMNS[moduleId]);
@@ -24,9 +85,34 @@ function getRecords(objectType) {
 }
 
 function appendPanel(descriptor) {
+  removePanel(descriptor.id, false);
   document.getElementById('module-nav').insertAdjacentHTML('beforeend', descriptor.renderNav());
   document.getElementById('module-panels').insertAdjacentHTML('beforeend', descriptor.renderPanel());
   descriptor.mount(document.getElementById(`panel-${descriptor.id}`));
+  state.loadedModules = [
+    ...state.loadedModules.filter(module => module.id !== descriptor.id),
+    descriptor,
+  ];
+}
+
+function removePanel(id, switchIfActive = true) {
+  let wasActive = false;
+  document.querySelectorAll('#module-nav .nav-button').forEach(button => {
+    if (button.dataset.panel === id) {
+      wasActive = wasActive || button.classList.contains('active');
+      button.remove();
+    }
+  });
+
+  document.getElementById(`panel-${id}`)?.remove();
+  state.loadedModules = state.loadedModules.filter(module => module.id !== id);
+
+  if (wasActive && switchIfActive) {
+    const nextPanel = document.querySelector('#module-nav .nav-button')?.dataset.panel;
+    if (nextPanel) {
+      showPanel(nextPanel);
+    }
+  }
 }
 
 function setAssociationDeal(dealId) {
@@ -348,62 +434,23 @@ function createLinksDescriptor() {
 
   return {
     id: 'links',
+    label: 'Associations',
     renderNav: () => `
       <button class="nav-button" data-panel="links">
-        Links <span class="nav-badge">-</span>
+        Associations <span class="nav-badge">-</span>
       </button>`,
     renderPanel: () => `
       <section id="panel-links" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Links</h2>
-            <p>A link never creates a record - it connects an existing deal to an existing
-               contact or company. Every picker is populated from records already in HubSpot.</p>
+            <h2>Associations</h2>
+            <p>Use <strong>Associate…</strong> in any record's ⋯ menu to link a deal to a
+               contact or company. This panel lets you inspect existing links.</p>
           </div>
           <div class="sub-badge">No hand-typed IDs</div>
         </div>
 
-        <div class="association-grid">
-          ${hasContacts ? `
-          <article class="section-card">
-            <h3>Link Deal - Contact</h3>
-            <p>Select a real deal and a real contact, then create the link.</p>
-            <div class="form-grid">
-              <div>
-                <label for="link-deal-contact">Deal</label>
-                <select id="link-deal-contact"></select>
-              </div>
-              <div>
-                <label for="link-contact">Contact</label>
-                <select id="link-contact"></select>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-link-contact" class="button button-primary">Link to contact</button>
-            </div>
-          </article>` : ''}
-
-          ${hasCompanies ? `
-          <article class="section-card">
-            <h3>Link Deal - Company</h3>
-            <p>Select a real deal and a real company, then create the link.</p>
-            <div class="form-grid">
-              <div>
-                <label for="link-deal-company">Deal</label>
-                <select id="link-deal-company"></select>
-              </div>
-              <div>
-                <label for="link-company">Company</label>
-                <select id="link-company"></select>
-              </div>
-            </div>
-            <div class="actions">
-              <button id="btn-link-company" class="button button-primary">Link to company</button>
-            </div>
-          </article>` : ''}
-        </div>
-
-        <div class="grid-2" style="margin-top: 18px;">
+        <div class="grid-2">
           <article class="section-card">
             <h3>View Existing Links</h3>
             <p>Pick a deal, then load its linked records.</p>
@@ -424,33 +471,32 @@ function createLinksDescriptor() {
 
           <article class="section-card">
             <h3>How associations work</h3>
-            <p>In HubSpot, deals don't contain contact or company data - they reference them
-               through separate association records. This panel sends a PUT request to create
-               the link and a GET to read it back.</p>
+            <p>In HubSpot, deals don't contain contact or company data — they reference them
+               through separate association records created via a PUT request.</p>
             <div class="association-item">
               <strong>Association type IDs</strong>
-              HubSpot uses fixed numeric IDs per object pair: deal-contact = 3, deal-company = 5.
+              HubSpot uses fixed numeric IDs per object pair: deal↔contact = 3, deal↔company = 5.
             </div>
             <div class="association-item" style="margin-top:10px">
-              <strong>Why dropdowns instead of text inputs</strong>
-              Associations fail silently if you reference an ID that doesn't exist.
-              Dropdowns eliminate that class of error entirely.
+              <strong>How to create a link</strong>
+              Open the ⋯ menu on any Deal, Contact, or Company row and choose
+              <em>Associate…</em> to link it without leaving the table.
             </div>
           </article>
         </div>
       </section>`,
     mount: container => {
-      container.querySelector('#btn-link-contact')?.addEventListener('click', event =>
-        associateSelected('contacts', event.currentTarget));
-      container.querySelector('#btn-link-company')?.addEventListener('click', event =>
-        associateSelected('companies', event.currentTarget));
       container.querySelector('#btn-show-contacts')?.addEventListener('click', event =>
         loadAssociations('contacts', event.currentTarget));
       container.querySelector('#btn-show-companies')?.addEventListener('click', event =>
         loadAssociations('companies', event.currentTarget));
 
-      document.addEventListener('crm:data-refreshed', renderLinksUi);
-      renderLinksUi();
+      document.addEventListener('crm:data-refreshed', () => {
+        const sel = container.querySelector('#association-deal');
+        if (sel) renderAssociationPlaceholder();
+        renderLinkSelectors(state);
+      });
+      renderLinkSelectors(state);
     }
   };
 }
@@ -460,6 +506,7 @@ function createImportDescriptor() {
 
   return {
     id: 'import',
+    label: 'Import / Export',
     renderNav: () => `
       <button class="nav-button" data-panel="import">
         Import / Export <span class="nav-badge">CSV</span>
@@ -558,11 +605,69 @@ function createImportDescriptor() {
 }
 
 function refreshOrderButtons(list) {
-  const rows = [...list.querySelectorAll('.module-toggle-row')];
+  const rows = getOrderRows(list);
   rows.forEach((row, i) => {
     row.querySelector('[data-dir="up"]').disabled   = i === 0;
     row.querySelector('[data-dir="down"]').disabled = i === rows.length - 1;
   });
+}
+
+function getOrderRows(list) {
+  return [...list.querySelectorAll('.module-toggle-row')].filter(child =>
+    child.dataset.moduleId || child.dataset.pluginId || child.dataset.utilityId);
+}
+
+function getEnabledModuleRows(rows) {
+  return rows.filter(row =>
+    row.dataset.moduleId &&
+    row.querySelector('.module-checkbox')?.checked);
+}
+
+function sortOrderRowsByNavOrder(list) {
+  const marker = list.querySelector('#plugin-list');
+  getOrderRows(list)
+    .sort((a, b) => Number(a.dataset.navOrder || 0) - Number(b.dataset.navOrder || 0))
+    .forEach(row => list.insertBefore(row, marker));
+}
+
+function buildPluginOrderPayload(rows) {
+  const visibleRows = rows.filter(row =>
+    row.dataset.pluginId ||
+    (row.dataset.moduleId && row.querySelector('.module-checkbox')?.checked));
+  const pluginOrders = [];
+  let moduleIndex = -1;
+  let cursor = 0;
+
+  while (cursor < visibleRows.length) {
+    const row = visibleRows[cursor];
+    if (row.dataset.moduleId) {
+      moduleIndex++;
+      cursor++;
+      continue;
+    }
+
+    const pluginRun = [];
+    while (cursor < visibleRows.length && visibleRows[cursor].dataset.pluginId) {
+      pluginRun.push(visibleRows[cursor]);
+      cursor++;
+    }
+
+    const previousOrder = moduleIndex >= 0 ? (moduleIndex + 1) * 100 : 0;
+    const hasNextModule = cursor < visibleRows.length && visibleRows[cursor].dataset.moduleId;
+    const nextOrder = hasNextModule ? (moduleIndex + 2) * 100 : null;
+    const step = nextOrder === null
+      ? 100
+      : (nextOrder - previousOrder) / (pluginRun.length + 1);
+
+    pluginRun.forEach((pluginRow, index) => {
+      pluginOrders.push({
+        id: pluginRow.dataset.pluginId,
+        navOrder: Math.round(previousOrder + step * (index + 1)),
+      });
+    });
+  }
+
+  return pluginOrders;
 }
 
 function createSettingsDescriptor(availableModules) {
@@ -577,27 +682,37 @@ function createSettingsDescriptor(availableModules) {
         <div class="panel-header">
           <div>
             <h2>Module Settings</h2>
-            <p>Enable or disable modules and drag them into the order you want.
-               Changes are saved to <span class="mono">appsettings.json</span>
-               and take effect after a server restart.</p>
+            <p>System modules are saved to <span class="mono">appsettings.json</span>
+               and need a restart. Uploaded plugins are listed in the same module list
+               and can be deleted immediately.</p>
           </div>
-          <div class="sub-badge">Requires restart</div>
+          <div class="sub-badge">Modules + plugins</div>
         </div>
 
         <div class="grid-2">
           <article class="section-card">
             <h3>Modules</h3>
-            <p>Check to enable. Use ↑ ↓ to set sidebar order.</p>
+            <p>One list for system modules and uploaded plugins. Plugins stay enabled
+               while installed; use Delete to uninstall them.</p>
             <div id="module-order-list" class="module-toggle-list">
-              ${availableModules.map((m, i) => `
-                <div class="module-toggle-row" data-module-id="${m.id}">
+              ${availableModules.map((m, i) => {
+                const enabledIndex = availableModules
+                  .slice(0, i + 1)
+                  .filter(module => module.enabled)
+                  .length;
+                const navOrder = m.enabled ? enabledIndex * 100 : 90_000 + i;
+                return `
+                <div class="module-toggle-row" data-module-id="${m.id}" data-nav-order="${navOrder}">
                   <input type="checkbox" class="module-checkbox" value="${m.id}" ${m.enabled ? 'checked' : ''}>
                   <span class="module-toggle-label">${m.label}</span>
                   <div class="module-order-btns">
                     <button class="module-order-btn" data-dir="up"   ${i === 0 ? 'disabled' : ''}>↑</button>
                     <button class="module-order-btn" data-dir="down" ${i === availableModules.length - 1 ? 'disabled' : ''}>↓</button>
                   </div>
-                </div>`).join('')}
+                </div>`;
+              }).join('')}
+              <div id="plugin-list" style="display:none"></div>
+              <div id="utility-panel-list"></div>
             </div>
             <div class="actions" style="margin-top:20px">
               <button id="btn-save-modules" class="button button-primary">Save changes</button>
@@ -606,18 +721,18 @@ function createSettingsDescriptor(availableModules) {
           </article>
 
           <article class="section-card">
-            <h3>How modules work</h3>
-            <p>Each module is a self-contained unit: it owns its API endpoints,
-               its bootstrap data, and its UI panel. Disabling a module removes
-               its routes from the server and its panel from the sidebar.</p>
-            <div class="association-item" style="margin-top:12px">
-              <strong>Links panel</strong>
-              Appears automatically when Deals + at least one of Contacts or Companies is enabled.
+            <h3>Install Plugin</h3>
+            <p>Upload a <span class="mono">.zip</span> containing a
+               <span class="mono">*.plugin.dll</span> and a matching
+               <span class="mono">&lt;id&gt;.js</span> frontend module.
+               The plugin loads instantly — no server restart required.</p>
+            <div style="display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap">
+              <input id="plugin-file-input" type="file" accept=".zip"
+                style="flex:1;min-width:0;padding:8px;border:1px solid var(--line);
+                       border-radius:10px;font:inherit;font-size:13px">
+              <button id="btn-upload-plugin" class="button button-primary">Upload</button>
             </div>
-            <div class="association-item" style="margin-top:10px">
-              <strong>Import / Export</strong>
-              Appears for every enabled module that has a CSV column definition.
-            </div>
+            <div id="plugin-upload-result" style="margin-top:10px;font-size:13px"></div>
           </article>
         </div>
       </section>`,
@@ -629,7 +744,9 @@ function createSettingsDescriptor(availableModules) {
         if (!btn) return;
         const row  = btn.closest('.module-toggle-row');
         const dir  = btn.dataset.dir;
-        const sibling = dir === 'up' ? row.previousElementSibling : row.nextElementSibling;
+        const rows = getOrderRows(list);
+        const index = rows.indexOf(row);
+        const sibling = dir === 'up' ? rows[index - 1] : rows[index + 1];
         if (!sibling) return;
         if (dir === 'up') list.insertBefore(row, sibling);
         else              list.insertBefore(sibling, row);
@@ -638,8 +755,8 @@ function createSettingsDescriptor(availableModules) {
 
       container.querySelector('#btn-save-modules')?.addEventListener('click', async event => {
         const btn = event.currentTarget;
-        const ordered = [...list.querySelectorAll('.module-toggle-row')]
-          .filter(row => row.querySelector('.module-checkbox').checked)
+        const rows = getOrderRows(list);
+        const ordered = getEnabledModuleRows(rows)
           .map(row => row.dataset.moduleId);
         if (!ordered.length) {
           toast('Enable at least one module.', 'error');
@@ -647,7 +764,17 @@ function createSettingsDescriptor(availableModules) {
         }
         setLoading(btn, true);
         try {
-          await apiFetch('/api/modules', 'POST', ordered);
+          // Persist utility panel order from current list position
+          const utilityOrders = {};
+          rows.forEach((row, i) => {
+            if (row.dataset.utilityId) utilityOrders[row.dataset.utilityId] = i * 10;
+          });
+          localStorage.setItem(UTILITY_ORDER_KEY, JSON.stringify(utilityOrders));
+
+          await apiFetch('/api/modules', 'POST', {
+            modules: ordered,
+            plugins: buildPluginOrderPayload(rows),
+          });
           toast('Saved. Reloading in 3 seconds…', 'success');
           setTimeout(() => location.reload(), 3000);
         } catch (error) {
@@ -655,17 +782,173 @@ function createSettingsDescriptor(availableModules) {
           setLoading(btn, false);
         }
       });
+
+      const pluginResult = container.querySelector('#plugin-upload-result');
+      const pluginListEl = container.querySelector('#plugin-list');
+
+      function syncPluginRowsFromState() {
+        list.querySelectorAll('.module-toggle-row[data-plugin-id]').forEach(row => row.remove());
+        const loaded = state.loadedModules.filter(m => m._isPlugin);
+        if (!loaded.length) { refreshOrderButtons(list); return; }
+        pluginListEl.insertAdjacentHTML('beforebegin',
+          loaded.map(m => buildPluginRow({ id: m.id, label: m.label, navOrder: m.navOrder }, true)).join(''));
+        sortOrderRowsByNavOrder(list);
+        refreshOrderButtons(list);
+      }
+
+      async function renderPluginList() {
+        try {
+          const plugins = await apiFetch('/api/admin/plugins');
+          const disabled = getDisabledPluginIds();
+          list.querySelectorAll('.module-toggle-row[data-plugin-id]').forEach(row => row.remove());
+          if (!plugins.length) { refreshOrderButtons(list); return; }
+          pluginListEl.insertAdjacentHTML('beforebegin',
+            plugins.map(p => buildPluginRow(p, !disabled.includes(p.id))).join(''));
+          sortOrderRowsByNavOrder(list);
+          refreshOrderButtons(list);
+        } catch {
+          list.querySelectorAll('.module-toggle-row[data-plugin-id]').forEach(row => row.remove());
+          refreshOrderButtons(list);
+        }
+      }
+
+      list.addEventListener('change', async e => {
+        const checkbox = e.target.closest('.plugin-toggle');
+        if (!checkbox) return;
+        const row = checkbox.closest('.module-toggle-row');
+        const id = row?.dataset.pluginId;
+        if (!id) return;
+        if (checkbox.checked) {
+          try {
+            const mod = (await import(`./plugin-modules/${id}.js?t=${Date.now()}`)).default;
+            appendPanel(mod);
+            setPluginEnabled(id);
+            toast(`Plugin "${mod.label || id}" enabled.`, 'success');
+          } catch {
+            checkbox.checked = false;
+            toast(`Failed to load plugin "${id}".`, 'error');
+          }
+        } else {
+          removePanel(id);
+          setPluginDisabled(id);
+          toast(`Plugin "${id}" disabled — still installed.`, 'info');
+        }
+      });
+
+      list.addEventListener('click', async e => {
+        const btn = e.target.closest('[data-unload-id]');
+        if (!btn) return;
+        const id = btn.dataset.unloadId;
+        btn.disabled = true;
+        try {
+          await apiFetch(`/api/admin/plugins/${encodeURIComponent(id)}`, 'DELETE');
+          removePanel(id);
+          pluginResult.textContent = `Plugin "${id}" deleted.`;
+          pluginResult.style.color = 'var(--success, green)';
+          toast(`Plugin "${id}" deleted.`, 'success');
+          await renderPluginList();
+        } catch (error) {
+          toast('Delete failed: ' + normalizeApiError(error), 'error');
+          btn.disabled = false;
+        }
+      });
+
+      container.querySelector('#btn-upload-plugin')?.addEventListener('click', async event => {
+        const btn = event.currentTarget;
+        const fileInput = container.querySelector('#plugin-file-input');
+        const file = fileInput?.files?.[0];
+        if (!file) {
+          pluginResult.textContent = 'Choose a .zip file first.';
+          pluginResult.style.color = 'var(--danger)';
+          return;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+        setLoading(btn, true);
+        pluginResult.textContent = 'Uploading…';
+        pluginResult.style.color = '';
+        try {
+          const res = await fetch('/api/admin/plugins/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error(await res.text());
+          const { id } = await res.json();
+          pluginResult.textContent = `Plugin "${id}" installed. Reloading UI…`;
+          pluginResult.style.color = 'var(--success, green)';
+          fileInput.value = '';
+          await renderPluginList();
+          // Dynamic import of the new module JS and mount it
+          try {
+            const mod = (await import(`./plugin-modules/${id}.js?t=${Date.now()}`)).default;
+            appendPanel(mod);
+            showPanel(id);
+            toast(`Plugin "${id}" loaded — panel added.`, 'success');
+          } catch {
+            toast(`Plugin "${id}" installed. Reload the page to activate it.`, 'info');
+          }
+        } catch (error) {
+          pluginResult.textContent = 'Upload failed: ' + normalizeApiError(error);
+          pluginResult.style.color = 'var(--danger)';
+          toast('Upload failed: ' + normalizeApiError(error), 'error');
+        } finally {
+          setLoading(btn, false);
+        }
+      });
+
+      function renderUtilityPanelList() {
+        const host = container.querySelector('#utility-panel-list');
+        if (!host || !_descriptorCache.size) return;
+        const disabled = getDisabledUtilityIds();
+        host.innerHTML = [..._descriptorCache.values()]
+          .map(desc => buildUtilityRow(desc, !disabled.includes(desc.id))).join('');
+        sortOrderRowsByNavOrder(list);
+        refreshOrderButtons(list);
+      }
+
+      list.addEventListener('change', async e => {
+        const checkbox = e.target.closest('.utility-toggle');
+        if (!checkbox) return;
+        const row = checkbox.closest('.module-toggle-row');
+        const id = row?.dataset.utilityId;
+        if (!id) return;
+        const desc = _descriptorCache.get(id);
+        if (!desc) return;
+        const disabled = getDisabledUtilityIds();
+        if (checkbox.checked) {
+          appendPanel(desc);
+          localStorage.setItem(DISABLED_UTILITY_KEY,
+            JSON.stringify(disabled.filter(d => d !== id)));
+          toast(`"${desc.label || id}" enabled.`, 'success');
+        } else {
+          removePanel(id);
+          if (!disabled.includes(id)) {
+            localStorage.setItem(DISABLED_UTILITY_KEY, JSON.stringify([...disabled, id]));
+          }
+          toast(`"${desc.label || id}" disabled.`, 'info');
+        }
+      });
+
+      syncPluginRowsFromState();
+      renderPluginList();
+      renderUtilityPanelList();
     },
   };
 }
 
 export async function mountUtilityPanels() {
+  const disabledUtility = getDisabledUtilityIds();
+  const storedOrder = getStoredUtilityOrder();
+
+  function registerUtility(desc, defaultNavOrder) {
+    desc._navOrder = storedOrder[desc.id] ?? defaultNavOrder;
+    _descriptorCache.set(desc.id, desc);
+    if (!disabledUtility.includes(desc.id)) appendPanel(desc);
+  }
+
   if (linksPanelAvailable()) {
-    appendPanel(createLinksDescriptor());
+    registerUtility(createLinksDescriptor(), 9500);
   }
 
   if (importPanelAvailable()) {
-    appendPanel(createImportDescriptor());
+    registerUtility(createImportDescriptor(), 9600);
   }
 
   try {

@@ -1,6 +1,7 @@
 import { escapeHtml } from './ui.js';
 import { INDUSTRY_OPTIONS } from './csv.js';
 import { LIFECYCLE_STAGES } from './forms.js';
+import { paginate, renderPaginator } from './pagination.js';
 
 const STAGE_WON = new Set(['closedwon', 'customer', 'closed won']);
 const STAGE_LOST = new Set(['closedlost', 'closed lost']);
@@ -148,7 +149,7 @@ function fillFilterSelect(id, items, getValue, getLabel) {
 }
 
 export function renderDealTable(records, searchActive, options = {}) {
-  const { linksEnabled = true } = options;
+  const { linksEnabled = true, page = 1, pageSize = 10 } = options;
   const body = document.getElementById('deal-table-body');
   const countEl = document.getElementById('deal-count');
   if (!body || !countEl) return;
@@ -166,11 +167,12 @@ export function renderDealTable(records, searchActive, options = {}) {
         ${searchActive ? '<button class="button button-secondary" data-action="clear-deal-filters">Clear filters</button>' : ''}
       </div>
     </td></tr>`;
+    renderPaginator('deal-paginator', 0, 1, 'deals');
     return;
   }
 
   body.innerHTML = '';
-  records.forEach(deal => {
+  paginate(records, page, pageSize).forEach(deal => {
     const row = document.createElement('tr');
     row.dataset.id = deal.id;
     row.innerHTML = `
@@ -180,7 +182,7 @@ export function renderDealTable(records, searchActive, options = {}) {
       <td>${escapeHtml(deal.properties.pipeline || '-')}</td>
       <td style="text-align:right">
         ${actionMenu(deal.id, [
-          ...(linksEnabled ? [{ label: 'Use in Links', action: 'use-deal-links' }] : []),
+          ...(linksEnabled ? [{ label: 'Associate…', action: 'associate-deal' }] : []),
           { label: 'Edit', action: 'edit-deal' },
           { divider: true },
           { label: 'Delete', action: 'delete-deal', danger: true },
@@ -188,6 +190,7 @@ export function renderDealTable(records, searchActive, options = {}) {
       </td>`;
     body.appendChild(row);
   });
+  renderPaginator('deal-paginator', records.length, page, 'deals');
 }
 
 export function renderContactTable(records, options = {}) {
@@ -196,6 +199,8 @@ export function renderContactTable(records, options = {}) {
     countClass = 'pill',
     countLabel = `${records.length} contacts`,
     emptyMessage = 'No contacts yet.<br>Create the first contact using the form on the left.',
+    page = 1,
+    pageSize = 10,
   } = options;
 
   const body = document.getElementById('contact-table-body');
@@ -210,11 +215,12 @@ export function renderContactTable(records, options = {}) {
       <div class="icon">CT</div>
       <p>${emptyMessage}</p>
     </div></td></tr>`;
+    renderPaginator('contact-paginator', 0, 1, 'contacts');
     return;
   }
 
   body.innerHTML = '';
-  records.forEach(contact => {
+  paginate(records, page, pageSize).forEach(contact => {
     const name = [contact.properties.firstname, contact.properties.lastname]
       .filter(Boolean)
       .join(' ') || '-';
@@ -228,7 +234,7 @@ export function renderContactTable(records, options = {}) {
       <td>${stagePill(contact.properties.lifecyclestage || '')}</td>
       <td style="text-align:right">
         ${actionMenu(contact.id, [
-          ...(linksEnabled ? [{ label: 'Use in Links', action: 'use-contact-links' }] : []),
+          ...(linksEnabled ? [{ label: 'Associate…', action: 'associate-contact' }] : []),
           { label: 'Edit', action: 'edit-contact' },
           { divider: true },
           { label: 'Delete', action: 'delete-contact', danger: true },
@@ -236,6 +242,7 @@ export function renderContactTable(records, options = {}) {
       </td>`;
     body.appendChild(row);
   });
+  renderPaginator('contact-paginator', records.length, page, 'contacts');
 }
 
 export function renderCompanyTable(records, options = {}) {
@@ -244,6 +251,8 @@ export function renderCompanyTable(records, options = {}) {
     countClass = 'pill',
     countLabel = `${records.length} companies`,
     emptyMessage = 'No companies yet.<br>Create the first company using the form on the left.',
+    page = 1,
+    pageSize = 10,
   } = options;
 
   const body = document.getElementById('company-table-body');
@@ -258,11 +267,12 @@ export function renderCompanyTable(records, options = {}) {
       <div class="icon">CO</div>
       <p>${emptyMessage}</p>
     </div></td></tr>`;
+    renderPaginator('company-paginator', 0, 1, 'companies');
     return;
   }
 
   body.innerHTML = '';
-  records.forEach(company => {
+  paginate(records, page, pageSize).forEach(company => {
     const row = document.createElement('tr');
     row.dataset.id = company.id;
     row.innerHTML = `
@@ -272,7 +282,7 @@ export function renderCompanyTable(records, options = {}) {
       <td>${escapeHtml(company.properties.industry || '-')}</td>
       <td style="text-align:right">
         ${actionMenu(company.id, [
-          ...(linksEnabled ? [{ label: 'Use in Links', action: 'use-company-links' }] : []),
+          ...(linksEnabled ? [{ label: 'Associate…', action: 'associate-company' }] : []),
           { label: 'Edit', action: 'edit-company' },
           { divider: true },
           { label: 'Delete', action: 'delete-company', danger: true },
@@ -280,6 +290,7 @@ export function renderCompanyTable(records, options = {}) {
       </td>`;
     body.appendChild(row);
   });
+  renderPaginator('company-paginator', records.length, page, 'companies');
 }
 
 export function renderLinkSelectors(state) {

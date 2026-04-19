@@ -12,4 +12,8 @@
     <EmbeddedResource Remove="CsvGenerator\**" />
     <None Remove="CsvGenerator\**" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\hubspot-sandbox-plugin-abstractions\HubSpotSandbox.Plugin.Abstractions.csproj" />
+  </ItemGroup>
 </Project>

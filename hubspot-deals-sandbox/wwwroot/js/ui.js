@@ -144,14 +144,193 @@ export function validateRequired(fields) {
   return allValid;
 }
 
+const HUBSPOT_FIELD_IDS = {
+  amount: ['deal-amount'],
+  city: ['company-city'],
+  closedate: ['deal-close-date'],
+  dealname: ['deal-name'],
+  dealstage: ['deal-stage'],
+  domain: ['company-domain'],
+  email: ['contact-email'],
+  firstname: ['contact-firstname'],
+  industry: ['company-industry'],
+  lastname: ['contact-lastname'],
+  lifecyclestage: ['contact-lifecycle'],
+  name: ['company-name'],
+  phone: ['contact-phone'],
+  pipeline: ['deal-pipeline'],
+};
+
+const HUBSPOT_FIELD_LABELS = {
+  amount: 'Amount',
+  city: 'City',
+  closedate: 'Close date',
+  dealname: 'Deal name',
+  dealstage: 'Stage',
+  domain: 'Domain',
+  email: 'Email',
+  firstname: 'First name',
+  industry: 'Industry',
+  lastname: 'Last name',
+  lifecyclestage: 'Lifecycle stage',
+  name: 'Company name',
+  phone: 'Phone',
+  pipeline: 'Pipeline',
+};
+
+export function clearApiValidation(root = document) {
+  root.querySelectorAll('.api-error-summary').forEach(el => el.remove());
+  root.querySelectorAll('[data-api-invalid="true"]').forEach(el => {
+    el.classList.remove('invalid');
+    el.removeAttribute('aria-invalid');
+    if (el.dataset.apiErrorTitle && el.title === el.dataset.apiErrorTitle) {
+      el.removeAttribute('title');
+    }
+    delete el.dataset.apiInvalid;
+    delete el.dataset.apiErrorTitle;
+  });
+  root.querySelectorAll('.field-error[data-api-error="true"]').forEach(el => {
+    el.classList.remove('visible');
+    if (el.classList.contains('api-field-error')) {
+      el.remove();
+    }
+    else {
+      delete el.dataset.apiError;
+    }
+  });
+}
+
+export function showApiValidation(error, root = getActivePanel()) {
+  if (!root) return;
+
+  clearApiValidation(root);
+
+  const fieldErrors = Array.isArray(error.fieldErrors) ? error.fieldErrors : [];
+  let firstInvalid = null;
+
+  fieldErrors.forEach(item => {
+    const fields = findFieldsForHubSpotProperty(root, item.field);
+    fields.forEach(field => {
+      showFieldError(field, item.message);
+      firstInvalid ||= field;
+    });
+  });
+
+  if (fieldErrors.length || isWriteRequest(error)) {
+    renderApiErrorSummary(root, error, fieldErrors, firstInvalid);
+  }
+
+  if (firstInvalid) {
+    firstInvalid.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    firstInvalid.focus({ preventScroll: true });
+  }
+}
+
 // Clears the invalid state from a field as the user types.
 // Call once at startup to attach to the whole document.
 export function initLiveValidation() {
-  document.addEventListener('input', e => {
+  const clearField = e => {
     const el = e.target;
     if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT') return;
     el.classList.remove('invalid');
+    el.removeAttribute('aria-invalid');
+    if (el.dataset.apiErrorTitle && el.title === el.dataset.apiErrorTitle) {
+      el.removeAttribute('title');
+    }
+    delete el.dataset.apiInvalid;
+    delete el.dataset.apiErrorTitle;
     const err = document.getElementById('err-' + el.id);
     if (err) err.classList.remove('visible');
-  });
+    el.closest('div')?.querySelectorAll('.field-error[data-api-error="true"]').forEach(errorEl => {
+      errorEl.classList.remove('visible');
+      if (errorEl.classList.contains('api-field-error')) {
+        errorEl.remove();
+      }
+    });
+    el.closest('.section-card, .edit-panel')?.querySelector('.api-error-summary')?.remove();
+  };
+
+  document.addEventListener('input', clearField);
+  document.addEventListener('change', clearField);
+  window.addEventListener('crm:api-request-start', () => clearApiValidation(getActivePanel()));
+  window.addEventListener('crm:api-error', event => showApiValidation(event.detail));
+}
+
+function getActivePanel() {
+  return document.querySelector('.panel-card:not(.panel-hidden)') || document;
+}
+
+function isWriteRequest(error) {
+  return ['POST', 'PATCH', 'PUT'].includes(String(error.method || '').toUpperCase());
+}
+
+function renderApiErrorSummary(root, error, fieldErrors, firstInvalid) {
+  const host = firstInvalid?.closest('.section-card, .edit-panel')
+    || root.querySelector('.section-card')
+    || root;
+  const summary = document.createElement('div');
+  summary.className = 'api-error-summary';
+  summary.innerHTML = `
+    <strong>HubSpot rejected this request.</strong>
+    <span>${escapeHtml(error.message || 'Check the highlighted fields and try again.')}</span>
+    ${fieldErrors.length ? `
+      <ul>
+        ${fieldErrors.map(item => `
+          <li><b>${escapeHtml(getFieldLabel(item.field))}:</b> ${escapeHtml(item.message)}</li>
+        `).join('')}
+      </ul>` : ''}`;
+  host.prepend(summary);
+}
+
+function showFieldError(field, message) {
+  field.classList.add('invalid');
+  field.dataset.apiInvalid = 'true';
+  field.dataset.apiErrorTitle = message;
+  field.title = message;
+  field.setAttribute('aria-invalid', 'true');
+
+  const container = field.closest('div') || field.parentElement;
+  if (!container) return;
+
+  let errorEl = field.id
+    ? document.getElementById('err-' + field.id)
+    : null;
+
+  if (!errorEl || !container.contains(errorEl)) {
+    errorEl = container.querySelector('.field-error[data-api-error="true"]');
+  }
+
+  if (!errorEl) {
+    errorEl = document.createElement('div');
+    errorEl.className = 'field-error api-field-error';
+    field.insertAdjacentElement('afterend', errorEl);
+  }
+
+  errorEl.dataset.apiError = 'true';
+  errorEl.textContent = message;
+  errorEl.classList.add('visible');
+}
+
+function findFieldsForHubSpotProperty(root, propertyName) {
+  const key = String(propertyName || '').trim().toLowerCase();
+  if (!key) return [];
+
+  const selectors = [
+    `[data-hubspot-field="${cssEscape(key)}"]`,
+    `[data-field="${cssEscape(key)}"]`,
+    ...(HUBSPOT_FIELD_IDS[key] || []).map(id => `#${cssEscape(id)}`),
+  ];
+
+  return [...new Set(selectors.flatMap(selector => [...root.querySelectorAll(selector)]))]
+    .filter(el => ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName));
+}
+
+function getFieldLabel(propertyName) {
+  return HUBSPOT_FIELD_LABELS[String(propertyName || '').toLowerCase()] || propertyName;
+}
+
+function cssEscape(value) {
+  return window.CSS?.escape
+    ? window.CSS.escape(value)
+    : String(value).replace(/["\\]/g, '\\$&');
 }
