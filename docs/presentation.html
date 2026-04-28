@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HubSpot CRM Sandbox — Denis Ryzhed</title>
+  <style>
+    :root {
+      --bg: #efe7db;
+      --paper: #fffaf2;
+      --card: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #e4d8c8;
+      --accent: #ff7a59;
+      --accent-dark: #d95a36;
+      --accent-soft: #ffe3da;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --amber: #d97706;
+      --night: #121827;
+      --night-2: #1f3148;
+      --cyan: #0ea5e9;
+      --violet: #7c3aed;
+      --shadow: 0 24px 60px rgba(23, 32, 51, .11);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --slide-w: 1280px;
+      --slide-h: 720px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Aptos", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(255, 122, 89, .30), transparent 28%),
+        radial-gradient(circle at 92% 6%, rgba(14, 165, 233, .20), transparent 26%),
+        linear-gradient(135deg, #fff8ef 0%, #efe7db 48%, #f7ded4 100%);
+    }
+
+    .deck {
+      width: min(var(--slide-w), calc(100vw - 32px));
+      margin: 24px auto 48px;
+      display: grid;
+      gap: 28px;
+    }
+
+    .slide {
+      --local: var(--accent);
+      --local-dark: var(--accent-dark);
+      --local-soft: var(--accent-soft);
+      position: relative;
+      isolation: isolate;
+      height: var(--slide-h);
+      min-height: var(--slide-h);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,250,242,.91)),
+        radial-gradient(circle at 90% 12%, var(--local-soft), transparent 26%);
+      border: 1px solid rgba(228, 216, 200, .94);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 28px 70px rgba(23, 32, 51, .14);
+      padding: 26px 34px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 16px;
+      page-break-after: always;
+      overflow: hidden;
+    }
+
+    .slide:last-child { page-break-after: auto; }
+
+    .slide > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.22), transparent 32%),
+        repeating-linear-gradient(90deg, rgba(23,32,51,.032) 0 1px, transparent 1px 74px);
+      opacity: .75;
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      right: -130px;
+      bottom: -150px;
+      z-index: 0;
+      width: 390px;
+      height: 390px;
+      border-radius: 42% 58% 48% 52%;
+      border: 1px solid rgba(255, 122, 89, .20);
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.75), transparent 28%),
+        linear-gradient(135deg, rgba(255,122,89,.20), rgba(37,99,235,.12));
+      transform: rotate(-12deg);
+    }
+
+    .slide:nth-of-type(1) {
+      --local: #ff7a59;
+      --local-dark: #ffb49f;
+      --local-soft: rgba(255, 122, 89, .22);
+      color: #fff;
+      background:
+        radial-gradient(circle at 82% 14%, rgba(255, 122, 89, .50), transparent 24%),
+        radial-gradient(circle at 10% 78%, rgba(14, 165, 233, .28), transparent 28%),
+        linear-gradient(135deg, var(--night) 0%, var(--night-2) 58%, #3b2432 100%);
+    }
+
+    .slide:nth-of-type(2) { --local: var(--cyan); --local-dark: #0369a1; --local-soft: #dff6ff; }
+    .slide:nth-of-type(3) { --local: var(--blue); --local-dark: #1d4ed8; --local-soft: #dbeafe; }
+    .slide:nth-of-type(4) { --local: var(--violet); --local-dark: #6d28d9; --local-soft: #ede9fe; }
+    .slide:nth-of-type(5) { --local: var(--green); --local-dark: #15803d; --local-soft: #dcfce7; }
+    .slide:nth-of-type(6) { --local: var(--accent); --local-dark: var(--accent-dark); --local-soft: var(--accent-soft); }
+    .slide:nth-of-type(7) { --local: #ef4444; --local-dark: #b91c1c; --local-soft: #fee2e2; }
+    .slide:nth-of-type(8) { --local: #334155; --local-dark: #0f172a; --local-soft: #e2e8f0; }
+    .slide.appendix { --local: #64748b; --local-dark: #334155; --local-soft: #e2e8f0; }
+
+    .slide-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 22px;
+    }
+
+    .slide-title {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: var(--local-soft);
+      color: var(--local-dark);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.40);
+    }
+
+    .slide-no {
+      flex: 0 0 auto;
+      min-width: 58px;
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      background: var(--local-soft);
+      color: var(--local-dark);
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      max-width: 840px;
+      font-size: 47px;
+      line-height: 1.02;
+      letter-spacing: -.045em;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    h2 {
+      max-width: 900px;
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: -.03em;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    h3 {
+      font-size: 18px;
+      line-height: 1.22;
+      letter-spacing: -.01em;
+    }
+
+    .lead {
+      max-width: 900px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.42;
+    }
+
+    .mark {
+      color: var(--local-dark);
+      text-shadow: 0 10px 28px rgba(255, 122, 89, .30);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 22px;
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    .col-4 { grid-column: span 4; }
+    .col-5 { grid-column: span 5; }
+    .col-6 { grid-column: span 6; }
+    .col-7 { grid-column: span 7; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      min-height: 0;
+    }
+
+    .card {
+      min-width: 0;
+      min-height: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.90)),
+        radial-gradient(circle at top right, var(--local-soft), transparent 46%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: 0 16px 34px rgba(23, 32, 51, .07);
+    }
+
+    .card.tight { padding: 14px; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      padding: 15px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, #fff, rgba(255,255,255,.82)),
+        radial-gradient(circle at 100% 0, var(--local-soft), transparent 48%);
+      display: grid;
+      gap: 8px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+    }
+
+    .metric strong {
+      font-size: 32px;
+      line-height: 1;
+      letter-spacing: -.04em;
+      color: var(--local-dark);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: rgba(23, 32, 51, .07);
+      color: var(--ink);
+      font-weight: 850;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .badge.accent { background: var(--accent-soft); color: var(--accent-dark); }
+    .badge.green { background: rgba(22, 163, 74, .12); color: #15803d; }
+    .badge.blue { background: rgba(37, 99, 235, .11); color: #1d4ed8; }
+
+    .bullet-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bullet {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.88);
+      box-shadow: inset 4px 0 0 var(--local);
+    }
+
+    .bullet .icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--local-soft);
+      color: var(--local-dark);
+      font-weight: 950;
+      font-size: 13px;
+    }
+
+    .storyline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .storyline span {
+      min-height: 48px;
+      padding: 11px 13px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.18);
+      color: rgba(255,255,255,.88);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+    }
+
+    .bullet p {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .proof-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .proof-card {
+      min-height: 205px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.98), rgba(255,255,255,.86)),
+        radial-gradient(circle at 90% 0, var(--local-soft), transparent 54%);
+      border: 1px solid var(--line);
+      box-shadow: 0 18px 36px rgba(23,32,51,.08);
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .proof-card strong {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: var(--local-soft);
+      color: var(--local-dark);
+      font-weight: 950;
+    }
+
+    .proof-card p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.48;
+    }
+
+    .callout-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .callout {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.86);
+      border: 1px solid var(--line);
+      box-shadow: inset 4px 0 0 var(--local);
+    }
+
+    .callout p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .appendix-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .api-group {
+      min-height: 350px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,.90);
+      border: 1px solid var(--line);
+      box-shadow: inset 4px 0 0 var(--local);
+    }
+
+    .api-group h3 {
+      margin-bottom: 12px;
+      color: var(--local-dark);
+    }
+
+    .api-group code {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      margin-top: 8px;
+      overflow-wrap: anywhere;
+      font-size: 11px;
+    }
+
+    .api-group p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .screenshot-card {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .screenshot-frame {
+      width: 100%;
+      min-height: 0;
+      aspect-ratio: 16 / 10;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255, 122, 89, .08), rgba(37, 99, 235, .06)),
+        #fff;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.80), 0 18px 34px rgba(23,32,51,.10);
+    }
+
+    .screenshot-frame.wide { aspect-ratio: 16 / 9; }
+    .screenshot-frame.compact { aspect-ratio: 4 / 3; }
+
+    #slide-2 .screenshot-frame { aspect-ratio: 16 / 6.3; }
+    #slide-3 .screenshot-frame,
+    #slide-4 .screenshot-frame,
+    #slide-5 .screenshot-frame,
+    #slide-6 .screenshot-frame,
+    #slide-7 .screenshot-frame {
+      aspect-ratio: 16 / 7.6;
+    }
+
+    .screenshot-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .caption {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.32;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .flow-step {
+      position: relative;
+      padding: 15px;
+      border-radius: var(--radius-lg);
+      background: #fff;
+      border: 1px solid var(--line);
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      overflow: hidden;
+      box-shadow: 0 12px 26px rgba(23, 32, 51, .05);
+    }
+
+    .flow-step::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 5px;
+      background: var(--local);
+    }
+
+    .flow-step .num {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--local), var(--local-dark));
+      color: #fff;
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .flow-step p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.38;
+    }
+
+    .architecture {
+      display: grid;
+      gap: 10px;
+    }
+
+    .arch-box {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background:
+        linear-gradient(135deg, #fff, rgba(255,255,255,.88)),
+        radial-gradient(circle at 100% 0, var(--local-soft), transparent 52%);
+      box-shadow: inset 4px 0 0 var(--local);
+    }
+
+    .arch-box p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .arch-arrow {
+      color: var(--local-dark);
+      text-align: center;
+      font-size: 22px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer strong { color: var(--ink); }
+
+    .slide:nth-of-type(1) .lead,
+    .slide:nth-of-type(1) .zh,
+    .slide:nth-of-type(1) .footer {
+      color: rgba(255,255,255,.74);
+    }
+
+    .slide:nth-of-type(1) .footer strong,
+    .slide:nth-of-type(1) h3 {
+      color: #fff;
+    }
+
+    .slide:nth-of-type(1) .badge,
+    .slide:nth-of-type(1) .metric,
+    .slide:nth-of-type(1) .bullet {
+      background: rgba(255,255,255,.10);
+      border-color: rgba(255,255,255,.18);
+      color: #fff;
+      backdrop-filter: blur(10px);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+
+    .slide:nth-of-type(1) .metric span,
+    .slide:nth-of-type(1) .bullet p {
+      color: rgba(255,255,255,.72);
+    }
+
+    .slide:nth-of-type(1) .screenshot-card {
+      background: rgba(255,255,255,.96);
+      color: var(--ink);
+      border-color: rgba(255,255,255,.36);
+    }
+
+    .slide:nth-of-type(1) .screenshot-card .caption {
+      color: var(--muted);
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(23,32,51,.07);
+      color: var(--local-dark);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: .92em;
+    }
+
+    @media (max-width: 980px) {
+      .deck { width: min(760px, calc(100vw - 24px)); }
+      .slide {
+        min-height: auto;
+        overflow: visible;
+        padding: 24px;
+      }
+      h1 { font-size: 36px; }
+      h2 { font-size: 29px; }
+      .row { grid-template-columns: 1fr; }
+      .col-4, .col-5, .col-6, .col-7, .col-8, .col-12 { grid-column: auto; }
+      .metric-grid, .flow { grid-template-columns: 1fr; }
+      .storyline { grid-template-columns: 1fr 1fr; }
+      .proof-grid, .callout-row, .appendix-grid { grid-template-columns: 1fr; }
+      .slide-header { flex-direction: column; }
+    }
+
+    .zh {
+      font-size: 15px;
+      color: var(--muted);
+      letter-spacing: .03em;
+      line-height: 1.5;
+      margin-top: 2px;
+      opacity: .72;
+      display: none !important;
+    }
+
+    body.zh-visible p.zh  { display: block  !important; }
+    body.zh-visible span.zh { display: inline !important; }
+
+    .deck-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      z-index: 30;
+      background: rgba(23, 32, 51, .08);
+    }
+
+    .deck-progress span {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+      transition: width .2s ease;
+    }
+
+    .presenter-controls {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      z-index: 30;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid rgba(228, 216, 200, .90);
+      border-radius: 999px;
+      background: rgba(255, 250, 242, .90);
+      box-shadow: 0 18px 44px rgba(23, 32, 51, .16);
+      backdrop-filter: blur(14px);
+    }
+
+    .presenter-controls button,
+    .presenter-controls a {
+      min-height: 34px;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(23, 32, 51, .07);
+      color: var(--ink);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .presenter-controls button:hover,
+    .presenter-controls a:hover {
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .presenter-index {
+      min-width: 58px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .speaker-notes {
+      position: fixed;
+      top: 64px;
+      right: 22px;
+      z-index: 31;
+      width: min(430px, calc(100vw - 44px));
+      max-height: calc(100vh - 120px);
+      overflow: auto;
+      padding: 18px;
+      border: 1px solid rgba(228, 216, 200, .92);
+      border-radius: 22px;
+      background: rgba(18, 24, 39, .94);
+      color: rgba(255,255,255,.88);
+      box-shadow: 0 24px 70px rgba(23, 32, 51, .30);
+      backdrop-filter: blur(18px);
+    }
+
+    .speaker-notes[hidden] { display: none; }
+
+    .speaker-notes h3 {
+      margin-bottom: 8px;
+      color: #fff;
+      font-size: 17px;
+    }
+
+    .speaker-notes p {
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .speaker-notes kbd {
+      display: inline-grid;
+      min-width: 22px;
+      height: 22px;
+      place-items: center;
+      padding: 0 6px;
+      border-radius: 7px;
+      background: rgba(255,255,255,.14);
+      color: #fff;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 11px;
+    }
+
+    .hide-controls .presenter-controls,
+    .hide-controls .speaker-notes {
+      display: none !important;
+    }
+
+    /* ── Fullscreen / presentation mode ── */
+    body.fs-mode {
+      overflow: hidden;
+    }
+
+    body.fs-mode .deck-progress {
+      z-index: 200;
+    }
+
+    body.fs-mode .deck {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+      display: block;
+      background: #000;
+      z-index: 100;
+    }
+
+    body.fs-mode .slide {
+      display: none !important;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1280px;
+      height: 720px;
+      transform-origin: center center;
+      transform: translate(-50%, -50%) scale(var(--fs-scale, 1));
+      border-radius: var(--radius-xl);
+    }
+
+    body.fs-mode .slide.fs-active {
+      display: grid !important;
+    }
+
+    body.fs-mode .presenter-controls {
+      z-index: 201;
+    }
+
+    body.fs-mode .speaker-notes {
+      z-index: 202;
+    }
+
+    @media print {
+      @page { size: 16in 9in; margin: 0; }
+      body { background: #fff; }
+      .deck-progress,
+      .presenter-controls,
+      .speaker-notes {
+        display: none !important;
+      }
+      .deck {
+        width: 16in;
+        margin: 0;
+        gap: 0;
+      }
+      .slide {
+        width: 16in;
+        min-height: 9in;
+        border-radius: 0;
+        box-shadow: none;
+        border: 0;
+        break-after: page;
+      }
+      .slide:last-child { break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck-progress" aria-hidden="true"><span id="deck-progress-bar"></span></div>
+  <main class="deck">
+    <section class="slide" id="slide-1">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Portfolio project</span>
+          <h1>Built to work with <span class="mark">real HubSpot</span> data</h1>
+          <p class="zh">真实对接 HubSpot 的 CRM 演示项目</p>
+        </div>
+        <div class="slide-no">01</div>
+      </header>
+
+      <div class="row">
+        <div class="col-7 stack">
+          <div class="badge-row">
+            <span class="badge accent">Zero bundler</span>
+            <span class="badge">Native ES modules</span>
+            <span class="badge">Live HubSpot API</span>
+            <span class="badge green">Runtime plugins</span>
+            <span class="badge blue">CSV import / export</span>
+          </div>
+          <div class="metric-grid">
+            <div class="metric"><strong>Real</strong><span>Every record reads from and writes to a live HubSpot sandbox — not a fake database</span></div>
+            <div class="metric"><strong>▶</strong><span>Expand any row to see linked records inline. Deals show contacts and companies. No separate screen.</span></div>
+            <div class="metric"><strong>ZIP</strong><span>Drop a plugin file — a new panel appears in the workspace without touching the main code</span></div>
+          </div>
+        </div>
+
+        <div class="col-5 card tight screenshot-card">
+          <div class="screenshot-frame wide">
+            <img src="screenshots/deals-panel.png" alt="HubSpot CRM sandbox deals panel">
+          </div>
+          <p class="caption">Deals panel — 24 live records, stage pills from HubSpot, per-row action menus, name/stage/pipeline filters, and paginator. All data is real.<br><span class="zh" style="font-size:11px;">商机面板 — 24 条实时数据，阶段标签来自 HubSpot，行级操作菜单，过滤与分页。</span></p>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>Denis Ryzhed</strong><span>C# · ASP.NET · HubSpot API · CRM integration · Runtime plugins · CSV workflow</span></footer>
+    </section>
+
+    <section class="slide" id="slide-2">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">The right order</span>
+          <h2>Company first. Contact second. Deal third.</h2>
+          <p class="zh">操作顺序与真实 CRM 用户一致</p>
+        </div>
+        <div class="slide-no">02</div>
+      </header>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="num">1</div>
+          <h3>Create company <span class="zh" style="font-size:12px;display:block;margin-top:2px;">创建公司</span></h3>
+          <p>Industry options come from HubSpot — the field can only hold valid values. No free-text surprises.</p>
+        </div>
+        <div class="flow-step">
+          <div class="num">2</div>
+          <h3>Create contact <span class="zh" style="font-size:12px;display:block;margin-top:2px;">创建联系人</span></h3>
+          <p>Email is the unique key. HubSpot rejects duplicates and the UI maps the error back to the exact field.</p>
+        </div>
+        <div class="flow-step">
+          <div class="num">3</div>
+          <h3>Create deal <span class="zh" style="font-size:12px;display:block;margin-top:2px;">创建商机</span></h3>
+          <p>Pipeline selection loads its stages live. Pick the wrong stage for a pipeline and HubSpot says no.</p>
+        </div>
+        <div class="flow-step">
+          <div class="num">4</div>
+          <h3>Associate and audit <span class="zh" style="font-size:12px;display:block;margin-top:2px;">建立关联并审计</span></h3>
+          <p>Link the deal to a contact or company from the row action menu. The Audit plugin scores data quality gaps.</p>
+        </div>
+      </div>
+
+      <div class="callout-row">
+        <div class="callout">
+          <h3>Master data first</h3>
+          <p>Company and contact records are created before any deal association is attempted.</p>
+        </div>
+        <div class="callout">
+          <h3>Deal second</h3>
+          <p>Pipeline and stage metadata come from HubSpot, so the deal form follows real CRM rules.</p>
+        </div>
+        <div class="callout">
+          <h3>Relationships last</h3>
+          <p>The user links records from row actions instead of manually typing IDs or guessing association targets.</p>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>Design principle:</strong><span>UI enforces the CRM object hierarchy — master data before relationships.</span></footer>
+    </section>
+
+    <section class="slide" id="slide-3">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Deals</span>
+          <h2>Create a deal. Pick a stage. HubSpot validates it.</h2>
+          <p class="zh">商机表单与 HubSpot 实时数据直连</p>
+        </div>
+        <div class="slide-no">03</div>
+      </header>
+
+      <div class="row">
+        <div class="col-5 stack">
+          <div class="bullet-list">
+            <div class="bullet">
+              <div class="icon">1</div>
+              <div>
+                <h3>Stages reload when you switch pipeline <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">切换管道时阶段实时更新</span></h3>
+                <p>Switch pipeline — the stage list updates instantly from HubSpot. Wrong stage for that pipeline? The API rejects it.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">2</div>
+              <div>
+                <h3>Edit and delete from the row <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">在表格行内直接操作</span></h3>
+                <p>Open ⋯ on any row to edit, delete, or associate. No separate page, no extra click.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">3</div>
+              <div>
+                <h3>Form shows which field failed <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">表单标记出错字段</span></h3>
+                <p>When HubSpot rejects a value, the error lands on the exact field — not just a generic message.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-7 card tight screenshot-card">
+          <div class="screenshot-frame">
+            <img src="screenshots/deals-panel.png" alt="Deals panel">
+          </div>
+          <p class="caption">Deals panel — filters by name, stage, and pipeline; inline edit and delete from the ⋯ menu; pagination with page size control.<br><span class="zh" style="font-size:11px;">商机面板 — 按名称/阶段/管道筛选，⋯ 菜单内联编辑，分页控制。</span></p>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>Technical point:</strong><span>Frontend module owns UI; backend module owns routes and HubSpot service calls.</span></footer>
+    </section>
+
+    <section class="slide" id="slide-4">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Linking records</span>
+          <h2>Connect a deal to the right person and company</h2>
+          <p class="zh">无需手动输入 ID 即可建立关联</p>
+        </div>
+        <div class="slide-no">04</div>
+      </header>
+
+      <div class="row">
+        <div class="col-7 card tight screenshot-card">
+          <div class="screenshot-frame">
+            <img src="screenshots/associate-modal.png" alt="Associate modal">
+          </div>
+          <p class="caption">Associate modal — opened from the ⋯ row menu. Creates the HubSpot association record. After saving, the ▶ row toggle shows the new link immediately.<br><span class="zh" style="font-size:11px;">关联弹窗 — 从 ⋯ 菜单打开，创建 HubSpot 关联记录。保存后，▶ 行展开即可验证关联结果。</span></p>
+        </div>
+        <div class="col-5 stack">
+          <div class="card">
+            <h3>Why this detail matters</h3>
+            <p class="caption">Most HubSpot integrations get this wrong first time. Association records are a separate PUT call with a fixed type ID — not a field on the deal. The sandbox makes that explicit.</p>
+          </div>
+          <div class="bullet-list">
+            <div class="bullet">
+              <div class="icon">⋯</div>
+              <div>
+                <h3>One click from any table row <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">任意行一键发起关联</span></h3>
+                <p>Open the action menu, choose Associate… — modal opens with the right context already set.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">▶</div>
+              <div>
+                <h3>Inline links — click ▶ to expand <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">点击 ▶ 展开关联记录</span></h3>
+                <p>Every row in Deals, Contacts, and Companies has a ▶ toggle. Click it to see linked records inline — no separate screen needed. Only one row can be open at a time.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>HubSpot detail:</strong><span>deal↔contact = type 3 · deal↔company = type 5 · created via PUT, not PATCH on the deal</span></footer>
+    </section>
+
+    <section class="slide" id="slide-5">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Bulk import</span>
+          <h2>Check every row before anything gets saved</h2>
+          <p class="zh">导入/导出作为集成工作流</p>
+        </div>
+        <div class="slide-no">05</div>
+      </header>
+
+      <div class="row">
+        <div class="col-5 stack">
+          <div class="bullet-list">
+            <div class="bullet">
+              <div class="icon">T</div>
+              <div>
+                <h3>Templates <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">字段模板下载</span></h3>
+                <p>Downloads approved columns per object type so imports stay predictable.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">V</div>
+              <div>
+                <h3>Preview validation <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">写入前逐行预览校验</span></h3>
+                <p>Checks required fields, email format, numeric amount, dates, stages, and allowed options.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">A</div>
+              <div>
+                <h3>Apply after review <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">确认无误后批量写入</span></h3>
+                <p>Rows are written only after the preview says the batch is safe.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-7 card tight screenshot-card">
+          <div class="screenshot-frame">
+            <img src="screenshots/import-panel.png" alt="Import export panel">
+          </div>
+          <p class="caption">Import/Export panel — download a template, upload a CSV, preview validation results per row, then apply the batch to HubSpot.<br><span class="zh" style="font-size:11px;">导入导出面板 — 下载模板，上传 CSV，逐行预览校验结果，确认后批量写入 HubSpot。</span></p>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>Integration signal:</strong><span>Round-trip data flow: export, edit, validate, apply.</span></footer>
+    </section>
+
+    <section class="slide" id="slide-6">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Settings &amp; Plugins</span>
+          <h2>Upload a ZIP. A new CRM tool appears.</h2>
+          <p class="zh">所有面板统一管理 — 排序、开关、删除</p>
+        </div>
+        <div class="slide-no">06</div>
+      </header>
+
+      <div class="row">
+        <div class="col-7 card tight screenshot-card">
+          <div class="screenshot-frame">
+            <img src="screenshots/settings-panel.png" alt="Settings panel with full module list">
+          </div>
+          <p class="caption">Full module list: Deals and Contacts (system), Audit (Plugin — enable/disable/delete), Companies, then Associations and Import/Export (Auto — enable/disable/reorder). Drop a ZIP on the right to install a new panel instantly.<br><span class="zh" style="font-size:11px;">完整模块列表：系统模块、插件模块（可启禁/删除）、自动面板（可启禁/排序）。右侧上传 ZIP 即时新增面板。</span></p>
+        </div>
+        <div class="col-5 stack">
+          <div class="bullet-list">
+            <div class="bullet">
+              <div class="icon">📦</div>
+              <div>
+                <h3>ZIP upload → live panel <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">ZIP 上传即时出现新面板</span></h3>
+                <p>Drop a ZIP with a <code>.plugin.dll</code> and a matching <code>.js</code> module. The UI panel appears immediately and backend actions run through the host dispatcher.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">↑↓</div>
+              <div>
+                <h3>Reorder anything <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">任意调整面板顺序</span></h3>
+                <p>System modules, plugins, and auto panels all share one ordered list. Arrow buttons reposition any row; order persists across reloads.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">✓</div>
+              <div>
+                <h3>Enable / disable without deleting <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">无需删除即可禁用</span></h3>
+                <p>Uncheck a plugin or utility panel to hide it from the nav. The files stay installed. Re-check to bring it back — no reinstall needed.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>Runtime plugin proof:</strong><span>Upload -> reorder -> disable -> re-enable without touching the static shell; plugin actions use a dispatcher.</span></footer>
+    </section>
+
+    <section class="slide" id="slide-7">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Error handling</span>
+          <h2>You see exactly what went wrong and where</h2>
+          <p class="zh">集中化的字段级 API 错误提示</p>
+        </div>
+        <div class="slide-no">07</div>
+      </header>
+
+      <div class="row">
+        <div class="col-5 stack">
+          <div class="bullet-list">
+            <div class="bullet">
+              <div class="icon">API</div>
+              <div>
+                <h3>One parser <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">统一错误解析器</span></h3>
+                <p>The API wrapper extracts messages and field errors from HubSpot responses.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">UI</div>
+              <div>
+                <h3>One renderer <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">统一错误渲染器</span></h3>
+                <p>The shared UI helper adds summary blocks, invalid styles, and inline hints.</p>
+              </div>
+            </div>
+            <div class="bullet">
+              <div class="icon">MOD</div>
+              <div>
+                <h3>No module duplication <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">各模块无重复逻辑</span></h3>
+                <p>Future modules and plugins can opt in by using standard ids or data-field attributes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-7 card tight screenshot-card">
+          <div class="screenshot-frame">
+            <img src="screenshots/contact-validation-error.png" alt="Contact form validation error">
+          </div>
+          <p class="caption">Duplicate contact email is mapped to the Email field with a form summary and inline hint — not only a generic toast.<br><span class="zh" style="font-size:11px;">重复邮箱错误被精确定位到邮箱字段，同时显示表单摘要和内联提示，而非仅弹出通用提示。</span></p>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>User outcome:</strong><span>Fewer blind errors, faster correction, cleaner demos.</span></footer>
+    </section>
+
+    <section class="slide" id="slide-8">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Summary</span>
+          <h2>Real data. Real HubSpot. Real integration.</h2>
+          <p class="zh">这不是界面原型，而是可运行的 CRM 集成系统</p>
+        </div>
+        <div class="slide-no">08</div>
+      </header>
+
+      <div class="proof-grid">
+        <div class="proof-card">
+          <strong>API</strong>
+          <h3>Live HubSpot integration</h3>
+          <p>Records, pipelines, stages, lifecycle stages, and company industry options are read from HubSpot instead of being hardcoded.</p>
+        </div>
+        <div class="proof-card">
+          <strong>CRM</strong>
+          <h3>Correct association model</h3>
+          <p>Deals, contacts, and companies are separate objects; relationships are created through HubSpot association endpoints.</p>
+        </div>
+        <div class="proof-card">
+          <strong>ZIP</strong>
+          <h3>Runtime extensibility</h3>
+          <p>Uploaded plugins can add a panel, run through the host dispatcher, and share the same module order as built-in panels.</p>
+        </div>
+        <div class="proof-card">
+          <strong>UX</strong>
+          <h3>Errors users can fix</h3>
+          <p>HubSpot rejection messages are parsed once and rendered as form summaries, invalid fields, and inline hints.</p>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>Demo close:</strong><span>A small ASP.NET + native ES module system with visible tradeoffs and real integration behavior.</span></footer>
+    </section>
+    <section class="slide appendix" id="slide-9">
+      <header class="slide-header">
+        <div class="slide-title">
+          <span class="eyebrow">Appendix</span>
+          <h2>HubSpot API reference used by the sandbox</h2>
+          <p class="zh">HubSpot API 参考</p>
+        </div>
+        <div class="slide-no">REF</div>
+      </header>
+
+      <div class="appendix-grid">
+        <div class="api-group">
+          <h3>CRUD objects</h3>
+          <p>List, create, update, and delete CRM records for deals, contacts, and companies.</p>
+          <code>GET /crm/v3/objects/{type}</code>
+          <code>POST /crm/v3/objects/{type}</code>
+          <code>PATCH /crm/v3/objects/{type}/{id}</code>
+          <code>DELETE /crm/v3/objects/{type}/{id}</code>
+        </div>
+        <div class="api-group">
+          <h3>Search and filters</h3>
+          <p>Deal search powers name, stage, and pipeline filtering without loading fake local data.</p>
+          <code>POST /crm/v3/objects/deals/search</code>
+        </div>
+        <div class="api-group">
+          <h3>Metadata</h3>
+          <p>Form dropdowns use real HubSpot metadata, so the user cannot submit invalid options.</p>
+          <code>GET /crm/v3/pipelines/deals</code>
+          <code>GET /crm/v3/properties/companies/industry</code>
+        </div>
+        <div class="api-group">
+          <h3>Associations</h3>
+          <p>Deal links are separate association records. Type IDs are fixed HubSpot constants.</p>
+          <code>GET /crm/v3/objects/deals/{id}/associations/{type}</code>
+          <code>PUT /crm/v3/objects/deals/{id}/associations/{type}/{targetId}/{typeId}</code>
+          <p style="margin-top:12px;">type 3 = contact; type 5 = company.</p>
+        </div>
+      </div>
+
+      <footer class="footer"><strong>Auth:</strong><span>Private app token in Authorization: Bearer header. Base URL: https://api.hubapi.com/</span></footer>
+    </section>
+  </main>
+  <aside class="speaker-notes" id="speaker-notes" hidden>
+    <h3 id="speaker-notes-title">Presenter notes</h3>
+    <p id="speaker-notes-text"></p>
+    <p style="margin-top:12px;"><kbd>N</kbd> notes <kbd>C</kbd> clean <kbd>D</kbd> live demo <kbd>&larr;</kbd><kbd>&rarr;</kbd> slides</p>
+  </aside>
+  <nav class="presenter-controls" aria-label="Presentation controls">
+    <button type="button" id="slide-prev" aria-label="Previous slide">&larr;</button>
+    <span class="presenter-index" id="presenter-index">1 / 9</span>
+    <button type="button" id="slide-next" aria-label="Next slide">&rarr;</button>
+    <button type="button" id="notes-toggle">Notes</button>
+    <button type="button" id="zh-toggle" title="Toggle Chinese subtitles">中文</button>
+    <a href="http://localhost:5100" target="_blank" rel="noreferrer">Live app</a>
+    <button type="button" id="clean-toggle">Clean</button>
+    <button type="button" id="fs-toggle">⛶ Present</button>
+  </nav>
+  <script>
+    (() => {
+      const slides = [...document.querySelectorAll('.slide')];
+      const progress = document.getElementById('deck-progress-bar');
+      const indexLabel = document.getElementById('presenter-index');
+      const notesPanel = document.getElementById('speaker-notes');
+      const notesTitle = document.getElementById('speaker-notes-title');
+      const notesText = document.getElementById('speaker-notes-text');
+      const url = new URL(window.location.href);
+      let current = Math.max(0, slides.findIndex(slide => `#${slide.id}` === window.location.hash));
+      let programmaticScroll = false;
+
+      const notes = {
+        'slide-1': 'Open with credibility: this is live HubSpot data, not a mockup. Mention no React/no bundler only after the product story is clear.',
+        'slide-2': 'Explain the CRM order: company/contact first, deal second, relationships last. Then switch to the live app if the audience is non-technical.',
+        'slide-3': 'Point out ownership: frontend module owns UI, backend module owns routes/service, shared utilities handle table actions and validation.',
+        'slide-4': 'This is the HubSpot-specific proof. Associations are separate records and API calls, not fields embedded in the deal. Click ▶ on any row to verify — no separate screen needed.',
+        'slide-5': 'Frame CSV as preview-before-write, not just upload/download. This shows integration discipline.',
+        'slide-6': 'Be precise: runtime plugin UI appears through ZIP upload; backend actions use a host dispatcher. Do not claim arbitrary Minimal API routes are hot-added.',
+        'slide-7': 'Strong UX point: user sees the exact field to fix. One parser, one renderer, no duplicated module-specific error code.',
+        'slide-8': 'Close here. Summarize the four proofs and stop. Use the appendix only if they ask for endpoints.',
+        'slide-9': 'Appendix only. The frontend calls local sandbox endpoints; backend calls HubSpot with the private app token.'
+      };
+
+      function updateUi() {
+        const slide = slides[current];
+        const total = slides.length;
+        indexLabel.textContent = `${current + 1} / ${total}`;
+        progress.style.width = `${((current + 1) / total) * 100}%`;
+        notesTitle.textContent = slide.querySelector('h1,h2')?.textContent?.trim() || 'Presenter notes';
+        notesText.textContent = notes[slide.id] || '';
+      }
+
+      function goTo(index) {
+        current = Math.min(Math.max(index, 0), slides.length - 1);
+        if (document.body.classList.contains('fs-mode')) {
+          slides.forEach(s => s.classList.remove('fs-active'));
+          slides[current].classList.add('fs-active');
+        } else {
+          programmaticScroll = true;
+          slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
+          window.setTimeout(() => { programmaticScroll = false; }, 700);
+        }
+        history.replaceState(null, '', `#${slides[current].id}`);
+        updateUi();
+      }
+
+      function calcFsScale() {
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720) * 0.97;
+        document.documentElement.style.setProperty('--fs-scale', scale);
+      }
+
+      function enterFs() {
+        calcFsScale();
+        document.body.classList.add('fs-mode');
+        slides.forEach(s => s.classList.remove('fs-active'));
+        slides[current].classList.add('fs-active');
+        document.documentElement.requestFullscreen?.();
+        document.getElementById('fs-toggle').textContent = '✕ Exit';
+      }
+
+      function exitFs() {
+        document.body.classList.remove('fs-mode');
+        slides.forEach(s => s.classList.remove('fs-active'));
+        if (document.fullscreenElement) document.exitFullscreen?.();
+        document.getElementById('fs-toggle').textContent = '⛶ Present';
+        slides[current].scrollIntoView({ block: 'start' });
+      }
+
+      function toggleFs() {
+        document.body.classList.contains('fs-mode') ? exitFs() : enterFs();
+      }
+
+      document.getElementById('fs-toggle').addEventListener('click', toggleFs);
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && document.body.classList.contains('fs-mode')) exitFs();
+      });
+      window.addEventListener('resize', () => {
+        if (document.body.classList.contains('fs-mode')) calcFsScale();
+      });
+
+      function toggleNotes(force) {
+        const shouldOpen = typeof force === 'boolean' ? force : notesPanel.hidden;
+        notesPanel.hidden = !shouldOpen;
+        updateUi();
+      }
+
+      document.getElementById('slide-prev').addEventListener('click', () => goTo(current - 1));
+      document.getElementById('slide-next').addEventListener('click', () => goTo(current + 1));
+      document.getElementById('notes-toggle').addEventListener('click', () => toggleNotes());
+      document.getElementById('clean-toggle').addEventListener('click', () => document.body.classList.toggle('hide-controls'));
+      document.getElementById('zh-toggle').addEventListener('click', () => {
+        const on = document.body.classList.toggle('zh-visible');
+        document.getElementById('zh-toggle').style.background = on ? 'var(--accent-soft)' : '';
+        document.getElementById('zh-toggle').style.color = on ? 'var(--accent-dark)' : '';
+      });
+
+      document.addEventListener('keydown', (event) => {
+        const tag = event.target?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+          event.preventDefault();
+          goTo(current + 1);
+        }
+        if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+          event.preventDefault();
+          goTo(current - 1);
+        }
+        if (event.key === 'Home') goTo(0);
+        if (event.key === 'End') goTo(slides.length - 1);
+        if (event.key.toLowerCase() === 'n') toggleNotes();
+        if (event.key.toLowerCase() === 'c') document.body.classList.toggle('hide-controls');
+        if (event.key.toLowerCase() === 'd') window.open('http://localhost:5100', '_blank', 'noreferrer');
+        if (event.key.toLowerCase() === 'f' || event.key === 'F5') { event.preventDefault(); toggleFs(); }
+      });
+
+      const observer = new IntersectionObserver((entries) => {
+        if (programmaticScroll) return;
+        const visible = entries
+          .filter(entry => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        const next = slides.indexOf(visible.target);
+        if (next >= 0 && next !== current) {
+          current = next;
+          history.replaceState(null, '', `#${slides[current].id}`);
+          updateUi();
+        }
+      }, { threshold: [0.45, 0.65, 0.85] });
+
+      slides.forEach(slide => observer.observe(slide));
+      if (url.searchParams.get('presenter') === '1') toggleNotes(true);
+      updateUi();
+    })();
+  </script>
+</body>
+</html>

@@ -21,6 +21,7 @@ Thumbs.db
 # Temp screenshots and browser session files
 *.png
 !hubspot-deals-sandbox-presentation/screenshots/*.png
+!docs/screenshots/*.png
 .playwright-mcp/
 
 # Server artifacts and runtime files
