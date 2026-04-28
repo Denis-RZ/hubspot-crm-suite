@@ -34,5 +34,9 @@ hubspot-deals-sandbox/web.config
 hubspot-deals-sandbox-presentation/104-*.csv
 hubspot-deals-sandbox-presentation/104-*.md
 
+# Secrets — never commit tokens
+**/appsettings.json
+!**/appsettings.example.json
+
 # Misc
 package.json
