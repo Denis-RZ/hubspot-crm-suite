@@ -6,16 +6,19 @@ import { readValue } from './ui.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const LIFECYCLE_STAGES = [
+const LIFECYCLE_STAGES_FALLBACK = [
   'subscriber', 'lead', 'marketingqualifiedlead',
   'salesqualifiedlead', 'opportunity', 'customer',
 ];
 
-export function renderLifecycleOptions() {
+export function renderLifecycleOptions(options) {
   const select = document.getElementById('contact-lifecycle');
   if (!select) return;
+  const items = options?.length
+    ? options.map(o => ({ value: o.value ?? o, label: o.label ?? o }))
+    : LIFECYCLE_STAGES_FALLBACK.map(v => ({ value: v, label: v }));
   select.innerHTML = '<option value="">Not set</option>' +
-    LIFECYCLE_STAGES.map(v => `<option value="${v}">${v}</option>`).join('');
+    items.map(({ value, label }) => `<option value="${value}">${label}</option>`).join('');
 }
 
 // ── CRUD mode tracking ────────────────────────────────────────────────────────

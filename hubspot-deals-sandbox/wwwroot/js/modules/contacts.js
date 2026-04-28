@@ -9,7 +9,9 @@ import {
   syncCrudForms,
 } from '../forms.js';
 import {
+  insertPanelRow,
   renderContactFilterOptions,
+  renderContactLinksRow,
   renderContactRowEdit,
   renderContactTable,
 } from '../renders.js';
@@ -20,6 +22,27 @@ import { linksPanelAvailable } from '../utility-panels.js';
 import { openAssociateModal } from '../associate-modal.js';
 import { cancelInlineEdit, cancelAnyOpenEdit } from '../inline-edit.js';
 import { getPage, setPage, resetPage, clampPage, getPageSize, setPageSize } from '../pagination.js';
+
+const ASSOCIATION_REFRESH_RETRY_MS = 500;
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function associationIds(records) {
+  return (records || [])
+    .map(record => String(record?.id ?? record?.toObjectId ?? record?.objectId ?? ''))
+    .filter(Boolean);
+}
+
+function linkedDeals(ids) {
+  return ids.map(id =>
+    state.deals.find(deal => String(deal.id) === id) ?? { id, _missing: true, properties: {} });
+}
+
+async function loadContactDealAssociations(contactId) {
+  return await apiFetch(`/api/associations/contacts/${encodeURIComponent(contactId)}/deals`);
+}
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Enter a valid email address.';
@@ -32,7 +55,7 @@ function resetContactForm() {
 
 function renderContactUi() {
   syncCrudForms(state);
-  renderLifecycleOptions();
+  renderLifecycleOptions(state.contactLifecycleOptions);
   renderContactFilterOptions(state);
 
   if (crudState.contact.mode === 'edit') {
@@ -161,7 +184,7 @@ function startInlineEditContact(contactId) {
   cancelAnyOpenEdit();
   const row = document.querySelector(`#contact-table-body tr[data-id="${contactId}"]`);
   if (row) {
-    renderContactRowEdit(row, contact);
+    renderContactRowEdit(row, contact, state.contactLifecycleOptions);
   }
 }
 
@@ -207,6 +230,66 @@ async function saveInlineEditContact(contactId, button) {
     toast('Failed to update contact', 'error');
     setLoading(button, false);
   }
+}
+
+function collapseContactLinksPanel(contactId) {
+  const panel = document.querySelector(`#contact-table-body tr[data-links-for="${contactId}"]`);
+  if (!panel) return;
+  const parentRow = panel.previousElementSibling;
+  panel.remove();
+  parentRow?.classList.remove('row-editing-parent', 'row-links-parent');
+  const toggle = document.querySelector(`#contact-table-body button[data-action="view-contact-links"][data-id="${contactId}"]`);
+  if (toggle) { toggle.textContent = '▶'; toggle.classList.remove('open'); }
+}
+
+async function showContactLinks(contactId, options = {}) {
+  const { refresh = false } = options;
+  const existingPanel = document.querySelector(`#contact-table-body tr[data-links-for="${contactId}"]`);
+  if (existingPanel && !refresh) { collapseContactLinksPanel(contactId); return; }
+
+  const row = document.querySelector(`#contact-table-body tr[data-id="${contactId}"]`);
+  if (!row) return;
+  if (!refresh) {
+    cancelAnyOpenEdit();
+  }
+
+  const loadingRow = existingPanel
+    ?? insertPanelRow(row, 6, '<p class="empty-note" style="margin:0">Loading…</p>', { kind: 'links' });
+  if (existingPanel) {
+    existingPanel.innerHTML = '<td colspan="6"><div class="edit-panel"><p class="empty-note" style="margin:0">Refreshing...</p></div></td>';
+  }
+  loadingRow.dataset.linksFor = contactId;
+
+  try {
+    let assocs = await loadContactDealAssociations(contactId);
+    if (refresh && options.expectedDealId &&
+      !associationIds(assocs).includes(String(options.expectedDealId))) {
+      await delay(ASSOCIATION_REFRESH_RETRY_MS);
+      assocs = await loadContactDealAssociations(contactId);
+    }
+    const deals = linkedDeals(associationIds(assocs));
+
+    loadingRow.remove();
+    row.classList.remove('row-editing-parent', 'row-links-parent');
+    const panelRow = renderContactLinksRow(row, deals);
+    panelRow.dataset.linksFor = contactId;
+
+    const toggle = row.querySelector('button[data-action="view-contact-links"]');
+    if (toggle) { toggle.textContent = '▼'; toggle.classList.add('open'); }
+  }
+  catch {
+    loadingRow.querySelector('p').textContent = 'Failed to load links.';
+  }
+}
+
+function refreshContactLinksIfOpen(event) {
+  const { objectType, objectId } = event.detail ?? {};
+  if (objectType !== 'contacts' || !objectId) return;
+  if (!document.querySelector(`#contact-table-body tr[data-links-for="${objectId}"]`)) return;
+  void showContactLinks(objectId, {
+    refresh: true,
+    expectedDealId: event.detail?.dealId,
+  });
 }
 
 export default {
@@ -279,7 +362,7 @@ export default {
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Name</th><th>Email</th><th>Phone</th><th>Lifecycle</th><th>Actions</th></tr>
+                  <tr><th class="col-expand"></th><th>Name</th><th>Email</th><th>Phone</th><th>Lifecycle</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="contact-table-body"></tbody>
               </table>
@@ -306,6 +389,7 @@ export default {
         const name = [c?.properties.firstname, c?.properties.lastname].filter(Boolean).join(' ') || id;
         openAssociateModal('contact', id, name);
       }
+      if (action === 'view-contact-links') await showContactLinks(id);
       if (action === 'edit-contact') startInlineEditContact(id);
       if (action === 'delete-contact') await deleteContact(id, button);
       if (action === 'save-contact-inline') await saveInlineEditContact(id, button);
@@ -327,6 +411,7 @@ export default {
     });
 
     document.addEventListener('crm:data-refreshed', renderContactUi);
+    document.addEventListener('crm:association-created', refreshContactLinksIfOpen);
     renderContactUi();
   }
 };

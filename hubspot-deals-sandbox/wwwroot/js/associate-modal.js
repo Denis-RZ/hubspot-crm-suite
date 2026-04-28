@@ -15,6 +15,14 @@ function selectedType() {
   return document.querySelector('input[name="assoc-type"]:checked')?.value ?? null;
 }
 
+function selectedRecordLabel() {
+  return recordSelect().selectedOptions[0]?.textContent?.trim() || recordSelect().value;
+}
+
+function associationSingular(objectType) {
+  return objectType === 'contacts' ? 'contact' : 'company';
+}
+
 function populateSelect(records, labelFn) {
   const sel = recordSelect();
   if (!records.length) {
@@ -48,7 +56,7 @@ function refreshList(type) {
   }
 }
 
-export function openAssociateModal(sourceType, sourceId, sourceName) {
+export function openAssociateModal(sourceType, sourceId, sourceName, preferredType = null) {
   _src = { type: sourceType, id: sourceId, name: sourceName };
 
   document.getElementById('associate-modal-title').textContent = `Associate: ${sourceName}`;
@@ -58,9 +66,11 @@ export function openAssociateModal(sourceType, sourceId, sourceName) {
 
   if (sourceType === 'deal') {
     typeSelector().style.display = '';
-    const first = typeSelector().querySelector('input[name="assoc-type"]');
-    if (first) first.checked = true;
-    refreshList(selectedType() ?? 'contacts');
+    const preferred = preferredType === 'companies' ? 'companies' : 'contacts';
+    const input = typeSelector().querySelector(`input[name="assoc-type"][value="${preferred}"]`)
+      ?? typeSelector().querySelector('input[name="assoc-type"]');
+    if (input) input.checked = true;
+    refreshList(selectedType() ?? preferred);
   } else {
     typeSelector().style.display = 'none';
     refreshList('deals');
@@ -102,12 +112,23 @@ async function doAssociate() {
   }
 
   try {
+    const dealName = _src.type === 'deal' ? _src.name : selectedRecordLabel();
+    const objectName = _src.type === 'deal' ? selectedRecordLabel() : _src.name;
+    const singular = associationSingular(objectType);
     const res = await apiFetch('/api/associate', 'POST', { dealId, objectType, objectId });
-    resultEl().textContent = '✓ Associated successfully.';
+    resultEl().textContent = `✓ Linked deal to ${singular}.`;
     resultEl().style.color = 'var(--accent)';
     resultEl().style.display = '';
-    setResult(res);
-    toast('Associated successfully!', 'success');
+    setResult({
+      message: `Linked deal "${dealName}" to ${singular} "${objectName}".`,
+      impact: 'HubSpot now has an association between the two existing records. No fields were copied and no duplicate record was created.',
+      request: { dealId, objectType, objectId },
+      hubspot: res,
+    });
+    toast(`Linked deal to ${singular}`, 'success');
+    document.dispatchEvent(new CustomEvent('crm:association-created', {
+      detail: { dealId, dealName, objectType, objectId, objectName },
+    }));
     setTimeout(closeModal, 1000);
   } catch (error) {
     const msg = normalizeApiError(error);

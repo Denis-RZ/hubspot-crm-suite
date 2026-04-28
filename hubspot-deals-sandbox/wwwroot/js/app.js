@@ -4,6 +4,8 @@ import { refreshAll } from './runtime.js';
 import { mountUtilityPanels } from './utility-panels.js';
 import { initAssociateModal } from './associate-modal.js';
 
+const NAV_ORDER_KEY = 'crm-nav-order';
+
 function initActionMenus() {
   document.addEventListener('click', event => {
     const trigger = event.target.closest('[data-action="open-menu"]');
@@ -29,6 +31,34 @@ function initActionMenus() {
   });
 }
 
+function applyStoredNavOrder() {
+  const nav = document.getElementById('module-nav');
+  if (!nav) return;
+
+  let stored = [];
+  try { stored = JSON.parse(localStorage.getItem(NAV_ORDER_KEY) || '[]'); }
+  catch { stored = []; }
+  if (!stored.length) return;
+
+  const buttonsById = new Map(
+    [...nav.querySelectorAll('.nav-button')]
+      .map(button => [button.dataset.panel, button])
+      .filter(([id]) => id));
+
+  const ordered = [];
+  stored.forEach(id => {
+    const button = buttonsById.get(id);
+    if (!button) return;
+    ordered.push(button);
+    buttonsById.delete(id);
+  });
+
+  const remaining = [...buttonsById.values()];
+  const settings = remaining.filter(button => button.dataset.panel === 'settings');
+  const nonSettings = remaining.filter(button => button.dataset.panel !== 'settings');
+  [...ordered, ...nonSettings, ...settings].forEach(button => nav.appendChild(button));
+}
+
 function initShellListeners() {
   document.getElementById('module-nav')?.addEventListener('click', event => {
     const button = event.target.closest('.nav-button');
@@ -51,6 +81,7 @@ async function initializeApp() {
   try {
     await loadModules();
     await mountUtilityPanels();
+    applyStoredNavOrder();
     initShellListeners();
 
     const firstPanel = document.querySelector('.nav-button')?.dataset.panel;

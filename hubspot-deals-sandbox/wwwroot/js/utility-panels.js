@@ -1,22 +1,24 @@
 import { apiFetch, normalizeApiError } from './api.js';
+import { openAssociateModal } from './associate-modal.js';
 import { getDisabledPluginIds } from './module-registry.js';
 import { buildCsvRow, CSV_COLUMNS, parseCSV, validateImportRow } from './csv.js';
 import {
-  renderAssociationPlaceholder,
-  renderAssociations,
   renderImportEmptyState,
   renderImportPreview,
   renderLinkSelectors,
 } from './renders.js';
 import { refreshAll } from './runtime.js';
 import { state } from './state.js';
-import { readValue, setError, setLoading, setResult, showPanel, toast } from './ui.js';
+import { escapeHtml, readValue, setError, setLoading, setResult, showPanel, toast } from './ui.js';
 
 const DISABLED_PLUGINS_KEY  = 'crm-disabled-plugins';
 const DISABLED_UTILITY_KEY  = 'crm-disabled-utility';
 const UTILITY_ORDER_KEY     = 'crm-utility-order';
+const NAV_ORDER_KEY         = 'crm-nav-order';
 
 const _descriptorCache = new Map(); // id → utility descriptor
+let _lastAssociationEvent = null;
+let _bulkLinkPlan = [];
 
 function getDisabledUtilityIds() {
   try { return JSON.parse(localStorage.getItem(DISABLED_UTILITY_KEY) || '[]'); }
@@ -28,8 +30,23 @@ function getStoredUtilityOrder() {
   catch { return {}; }
 }
 
+function getStoredNavOrder() {
+  try {
+    const order = JSON.parse(localStorage.getItem(NAV_ORDER_KEY) || '[]');
+    return Array.isArray(order) ? order : [];
+  }
+  catch {
+    return [];
+  }
+}
+
+function getStoredNavOrderValue(id, fallback) {
+  const index = getStoredNavOrder().indexOf(id);
+  return index >= 0 ? index * 10 : fallback;
+}
+
 function buildUtilityRow(desc, enabled) {
-  const navOrder = desc._navOrder ?? 9500;
+  const navOrder = getStoredNavOrderValue(desc.id, desc._navOrder ?? 9500);
   return `
     <div class="module-toggle-row" data-utility-id="${desc.id}" data-nav-order="${navOrder}">
       <input type="checkbox" class="module-checkbox utility-toggle" value="${desc.id}" ${enabled ? 'checked' : ''}>
@@ -57,8 +74,9 @@ function setPluginEnabled(id) {
 }
 
 function buildPluginRow(p, enabled) {
+  const navOrder = getStoredNavOrderValue(p.id, p.navOrder);
   return `
-    <div class="module-toggle-row" data-plugin-id="${p.id}" data-nav-order="${p.navOrder}">
+    <div class="module-toggle-row" data-plugin-id="${p.id}" data-nav-order="${navOrder}">
       <input type="checkbox" class="module-checkbox plugin-toggle" value="${p.id}" ${enabled ? 'checked' : ''}>
       <span class="module-toggle-label">
         ${p.label ?? p.id}
@@ -142,6 +160,7 @@ export function useDealInLinks(dealId) {
   setAssociationDeal(dealId);
   showPanel('links');
   toast(`Deal ${dealId} pre-selected in Links tab`, 'info');
+  void loadSelectedDealAssociations();
 }
 
 export function useContactInLinks(contactId) {
@@ -192,6 +211,7 @@ async function associateSelected(objectType, button) {
     const result = await apiFetch('/api/associate', 'POST', { dealId, objectType, objectId });
     setAssociationDeal(dealId);
     await loadAssociations(objectType);
+    notifyAssociationCreated({ dealId, objectType, objectId });
     setResult(result);
     toast(`Deal linked to ${objectType.slice(0, -1)} successfully!`, 'success');
   }
@@ -205,32 +225,457 @@ async function associateSelected(objectType, button) {
   }
 }
 
-async function loadAssociations(objectType, button) {
-  const dealId = readValue('association-deal');
-  if (!dealId) {
-    toast('Select a deal first.', 'error');
+function getSelectedAssociationDealId() {
+  return document.getElementById('association-deal')?.value?.trim() || '';
+}
+
+function getAssociationOutput(objectType) {
+  return document.getElementById(`association-${objectType}-output`);
+}
+
+function getAssociationRecordId(record) {
+  return String(record?.id ?? record?.toObjectId ?? record?.objectId ?? record?.to?.id ?? '');
+}
+
+function getAssociationRows(records) {
+  return Array.isArray(records) ? records : records?.results ?? [];
+}
+
+function getLocalAssociationRecord(objectType, record) {
+  const recordId = getAssociationRecordId(record);
+  return getRecords(objectType).find(item => String(item.id) === recordId) ?? null;
+}
+
+function associationSingular(objectType) {
+  return objectType === 'contacts' ? 'contact' : 'company';
+}
+
+function associationSingularLabel(objectType) {
+  const singular = associationSingular(objectType);
+  return singular.charAt(0).toUpperCase() + singular.slice(1);
+}
+
+function associationTitle(objectType, record) {
+  const local = getLocalAssociationRecord(objectType, record);
+  const props = local?.properties ?? record?.properties ?? {};
+
+  if (objectType === 'contacts') {
+    return [props.firstname, props.lastname].filter(Boolean).join(' ')
+      || props.email
+      || getAssociationRecordId(record);
+  }
+
+  return props.name || props.domain || getAssociationRecordId(record);
+}
+
+function dealTitle(deal) {
+  return deal?.properties?.dealname || String(deal?.id || '');
+}
+
+function recordTitle(objectType, record) {
+  const props = record?.properties ?? {};
+  if (objectType === 'contacts') {
+    return [props.firstname, props.lastname].filter(Boolean).join(' ')
+      || props.email
+      || String(record?.id || '');
+  }
+
+  return props.name || props.domain || String(record?.id || '');
+}
+
+function associationEventDetail({ dealId, dealName, objectType, objectId, objectName }) {
+  const deal = state.deals.find(record => String(record.id) === String(dealId));
+  const object = getRecords(objectType).find(record => String(record.id) === String(objectId));
+  return {
+    dealId,
+    dealName: dealName || dealTitle(deal) || dealId,
+    objectType,
+    objectId,
+    objectName: objectName || recordTitle(objectType, object) || objectId,
+  };
+}
+
+function notifyAssociationCreated(detail) {
+  document.dispatchEvent(new CustomEvent('crm:association-created', {
+    detail: associationEventDetail(detail),
+  }));
+}
+
+function associationMeta(objectType, record) {
+  const local = getLocalAssociationRecord(objectType, record);
+  const props = local?.properties ?? record?.properties ?? {};
+  const parts = objectType === 'contacts'
+    ? [props.email, props.phone]
+    : [props.domain, props.city];
+
+  const type = record?.type ?? record?.associationType ?? '';
+  return [...parts, type].filter(Boolean).join(' · ') || 'HubSpot association record';
+}
+
+function renderAssociationStatus() {
+  const container = document.getElementById('association-status');
+  if (!container) return;
+
+  if (!_lastAssociationEvent) {
+    container.innerHTML = `
+      <strong>What changes when you link?</strong>
+      <div>
+        HubSpot creates a relationship between one deal and an existing contact or company.
+        It does not copy fields, move records, or create duplicates.
+      </div>
+      <div class="helper" style="margin-top:10px">
+        Use <strong>Associate…</strong> in any row menu. After success, this panel selects
+        that deal automatically and shows the linked records below.
+      </div>`;
+    return;
+  }
+
+  const singular = associationSingular(_lastAssociationEvent.objectType);
+  container.innerHTML = `
+    <strong>Last link created</strong>
+    <div>
+      Deal <strong>${escapeHtml(_lastAssociationEvent.dealName || _lastAssociationEvent.dealId)}</strong>
+      is now linked to ${singular}
+      <strong>${escapeHtml(_lastAssociationEvent.objectName || _lastAssociationEvent.objectId)}</strong>.
+    </div>
+    <div class="helper" style="margin-top:10px">
+      Impact: this record now appears in the list below and HubSpot treats both records as related.
+    </div>`;
+}
+
+function renderAssociationMessage(objectType, message, tone = '') {
+  const container = getAssociationOutput(objectType);
+  if (!container) return;
+
+  const style = tone === 'error' ? ' style="color:var(--danger)"' : '';
+  container.innerHTML = `<div class="empty-note"${style}>${escapeHtml(message)}</div>`;
+}
+
+function renderAssociationRecords(objectType, records) {
+  const container = getAssociationOutput(objectType);
+  if (!container) return;
+
+  const rows = getAssociationRows(records);
+  if (!rows.length) {
+    const singular = associationSingular(objectType);
+    container.innerHTML = `
+      <div class="empty-note">
+        No linked ${objectType} yet.
+        <div class="actions" style="margin-top:10px">
+          <button class="button button-secondary" data-associate-empty="${objectType}">
+            Associate ${singular}
+          </button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = rows.map(record => {
+    const recordId = getAssociationRecordId(record);
+    return `
+      <div class="association-item">
+        <strong>${escapeHtml(associationTitle(objectType, record))}</strong>
+        <div class="mono">${escapeHtml(recordId)}</div>
+        <div>${escapeHtml(associationMeta(objectType, record))}</div>
+      </div>`;
+  }).join('');
+}
+
+function getBulkLinkObjectTypes() {
+  return ['contacts', 'companies'].filter(objectType =>
+    state.enabledModules.includes(objectType) && getRecords(objectType).length > 0);
+}
+
+function renderBulkLinkEmptyState(message = 'Preview scans every deal and shows exactly what would be linked before any write happens.') {
+  const body = document.getElementById('bulk-link-body');
+  const count = document.getElementById('bulk-link-count');
+  const runButton = document.getElementById('btn-run-auto-links');
+
+  if (count) {
+    count.className = 'pill';
+    count.textContent = 'No preview yet';
+  }
+
+  if (runButton) {
+    runButton.disabled = true;
+  }
+
+  if (!body) return;
+  body.innerHTML = `<tr><td colspan="4"><div class="empty-state">
+    <div class="icon" style="font-size:22px;font-family:monospace;font-weight:800">↔</div>
+    <p>${escapeHtml(message)}</p>
+  </div></td></tr>`;
+}
+
+function renderBulkLinkRows(rows) {
+  const body = document.getElementById('bulk-link-body');
+  const count = document.getElementById('bulk-link-count');
+  const runButton = document.getElementById('btn-run-auto-links');
+  if (!body || !count) return;
+
+  const ready = rows.filter(row => row.action === 'link').length;
+  const created = rows.filter(row => row.status === 'Created').length;
+  const failed = rows.filter(row => row.status === 'Failed').length;
+  const skipped = rows.filter(row => row.action === 'skip').length;
+
+  count.className = failed ? 'pill filter-active' : created ? 'pill success' : 'pill';
+  count.textContent = created
+    ? `${created} created / ${failed} failed`
+    : `${ready} ready / ${skipped} skipped`;
+
+  if (runButton) {
+    runButton.disabled = ready === 0 || rows.some(row => row.status === 'Created');
+  }
+
+  body.innerHTML = rows.map(row => `
+    <tr>
+      <td>
+        <strong>${escapeHtml(row.dealName)}</strong>
+        <div class="mono">${escapeHtml(row.dealId)}</div>
+      </td>
+      <td>
+        ${escapeHtml(row.objectLabel)}
+        ${row.objectName ? `<div>${escapeHtml(row.objectName)}</div>` : ''}
+        ${row.objectId ? `<div class="mono">${escapeHtml(row.objectId)}</div>` : ''}
+      </td>
+      <td>${escapeHtml(row.action === 'link' ? 'Create missing link' : 'Skip')}</td>
+      <td>${row.status === 'Failed'
+        ? `<span style="color:var(--danger)">${escapeHtml(row.error || row.status)}</span>`
+        : escapeHtml(row.status)}</td>
+    </tr>`).join('');
+}
+
+function renderBulkScanProgress(done, total) {
+  const count = document.getElementById('bulk-link-count');
+  if (!count) return;
+  count.className = 'pill';
+  count.textContent = `Scanning ${done}/${total}`;
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await worker(items[index], index);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
+async function previewBulkAutoLinks(button) {
+  const objectTypes = getBulkLinkObjectTypes();
+  if (!state.deals.length) {
+    renderBulkLinkEmptyState('No deals available to link.');
+    toast('No deals available.', 'error');
+    return;
+  }
+
+  if (!objectTypes.length) {
+    renderBulkLinkEmptyState('Enable Contacts or Companies and load at least one record before auto-linking.');
+    toast('No contacts or companies available for auto-linking.', 'error');
+    return;
+  }
+
+  setLoading(button, true);
+  _bulkLinkPlan = [];
+  renderBulkLinkEmptyState('Scanning existing HubSpot associations...');
+  const checks = state.deals.flatMap((deal, dealIndex) =>
+    objectTypes.map(objectType => ({ deal, dealIndex, objectType })));
+  let completed = 0;
+  renderBulkScanProgress(completed, checks.length);
+
+  try {
+    _bulkLinkPlan = await mapWithConcurrency(checks, 8, async ({ deal, dealIndex, objectType }) => {
+      const existing = await apiFetch(`/api/associations/${encodeURIComponent(deal.id)}/${encodeURIComponent(objectType)}`);
+      const existingRows = getAssociationRows(existing);
+      const objectLabel = associationSingularLabel(objectType);
+      completed++;
+      renderBulkScanProgress(completed, checks.length);
+
+      if (existingRows.length) {
+        return {
+          dealId: deal.id,
+          dealName: dealTitle(deal),
+          objectType,
+          objectLabel,
+          action: 'skip',
+          status: `Already has ${existingRows.length} ${objectType}`,
+        };
+      }
+
+      const candidates = getRecords(objectType);
+      const target = candidates[dealIndex % candidates.length];
+      return {
+        dealId: deal.id,
+        dealName: dealTitle(deal),
+        objectType,
+        objectLabel,
+        objectId: target.id,
+        objectName: recordTitle(objectType, target),
+        action: 'link',
+        status: 'Ready',
+      };
+    });
+
+    renderBulkLinkRows(_bulkLinkPlan);
+    const ready = _bulkLinkPlan.filter(row => row.action === 'link').length;
+    const skipped = _bulkLinkPlan.length - ready;
+    setResult({
+      message: `Auto-link preview ready: ${ready} links can be created, ${skipped} already covered.`,
+      strategy: 'Round-robin across existing contacts and companies. Existing associations are skipped.',
+      ready,
+      skipped,
+      plan: _bulkLinkPlan,
+    });
+    toast(`Preview ready: ${ready} links to create`, ready ? 'success' : 'info');
+  }
+  catch (error) {
+    const message = normalizeApiError(error);
+    setError(message);
+    renderBulkLinkEmptyState('Preview failed. See the API Result panel for details.');
+    toast('Auto-link preview failed', 'error');
+  }
+  finally {
+    setLoading(button, false);
+    if (_bulkLinkPlan.length) {
+      renderBulkLinkRows(_bulkLinkPlan);
+    }
+  }
+}
+
+async function runBulkAutoLinks(button) {
+  const rowsToCreate = _bulkLinkPlan.filter(row => row.action === 'link');
+  if (!rowsToCreate.length) {
+    toast('Run preview first. No missing links are ready.', 'info');
     return;
   }
 
   setLoading(button, true);
   try {
-    const result = await apiFetch(`/api/associations/${encodeURIComponent(dealId)}/${encodeURIComponent(objectType)}`);
-    renderAssociations(objectType, result);
-    setResult(result);
-  }
-  catch (error) {
-    const message = normalizeApiError(error);
-    setError(message);
-    toast('Could not load associations', 'error');
+    for (const row of rowsToCreate) {
+      row.status = 'Creating...';
+      renderBulkLinkRows(_bulkLinkPlan);
+      try {
+        row.result = await apiFetch('/api/associate', 'POST', {
+          dealId: row.dealId,
+          objectType: row.objectType,
+          objectId: row.objectId,
+        });
+        row.status = 'Created';
+        notifyAssociationCreated(row);
+      }
+      catch (error) {
+        row.status = 'Failed';
+        row.error = normalizeApiError(error);
+      }
+    }
+
+    renderBulkLinkRows(_bulkLinkPlan);
+    const created = _bulkLinkPlan.filter(row => row.status === 'Created').length;
+    const failed = _bulkLinkPlan.filter(row => row.status === 'Failed').length;
+    const lastCreated = [..._bulkLinkPlan].reverse().find(row => row.status === 'Created');
+
+    if (lastCreated) {
+      _lastAssociationEvent = {
+        dealId: lastCreated.dealId,
+        dealName: lastCreated.dealName,
+        objectType: lastCreated.objectType,
+        objectId: lastCreated.objectId,
+        objectName: lastCreated.objectName,
+      };
+      setAssociationDeal(lastCreated.dealId);
+      renderAssociationStatus();
+      await loadSelectedDealAssociations();
+    }
+
+    setResult({
+      message: `Auto-link finished: ${created} created, ${failed} failed.`,
+      created,
+      failed,
+      skipped: _bulkLinkPlan.filter(row => row.action === 'skip').length,
+      results: _bulkLinkPlan,
+    }, failed === 0);
+    toast(`Auto-link finished: ${created} created${failed ? `, ${failed} failed` : ''}`,
+      failed ? 'info' : 'success');
   }
   finally {
     setLoading(button, false);
   }
 }
 
-function renderLinksUi() {
-  renderLinkSelectors(state);
-  renderAssociationPlaceholder();
+async function loadAssociations(objectType, button, options = {}) {
+  const { quiet = false, updateResult = true } = options;
+  const dealId = getSelectedAssociationDealId();
+  if (!dealId) {
+    renderAssociationMessage(objectType, `Select a deal to see linked ${objectType}.`);
+    if (!quiet) toast('Select a deal first.', 'error');
+    return null;
+  }
+
+  setLoading(button, true);
+  renderAssociationMessage(objectType, `Loading linked ${objectType}...`);
+  try {
+    const result = await apiFetch(`/api/associations/${encodeURIComponent(dealId)}/${encodeURIComponent(objectType)}`);
+    renderAssociationRecords(objectType, result);
+    if (updateResult) setResult({ dealId, [objectType]: result });
+    return result;
+  }
+  catch (error) {
+    const message = normalizeApiError(error);
+    renderAssociationMessage(objectType, `Could not load ${objectType}: ${message}`, 'error');
+    if (!quiet) {
+      setError(message);
+      toast('Could not load associations', 'error');
+    }
+    return null;
+  }
+  finally {
+    setLoading(button, false);
+  }
+}
+
+async function loadSelectedDealAssociations() {
+  const objectTypes = ['contacts', 'companies'].filter(objectType =>
+    state.enabledModules.includes(objectType));
+
+  const dealId = getSelectedAssociationDealId();
+  if (!dealId) {
+    objectTypes.forEach(objectType =>
+      renderAssociationMessage(objectType, `Select a deal to see linked ${objectType}.`));
+    return;
+  }
+
+  const entries = await Promise.all(objectTypes.map(async objectType => [
+    objectType,
+    await loadAssociations(objectType, null, { quiet: true, updateResult: false }),
+  ]));
+  const failures = entries.filter(([, records]) => records === null);
+
+  if (failures.length) {
+    setError(`Could not load deal links for ${failures.map(([objectType]) => objectType).join(', ')}.`);
+    toast('Could not load all deal links', 'error');
+    return;
+  }
+
+  setResult({
+    dealId,
+    ...Object.fromEntries(entries),
+  });
+}
+
+function openAssociationForSelectedDeal(objectType) {
+  const dealId = getSelectedAssociationDealId();
+  if (!dealId) {
+    toast('Select a deal first.', 'error');
+    return;
+  }
+
+  const deal = state.deals.find(item => String(item.id) === dealId);
+  openAssociateModal('deal', dealId, deal?.properties?.dealname || dealId, objectType);
 }
 
 function buildObjectTypeOptions() {
@@ -434,69 +879,151 @@ function createLinksDescriptor() {
 
   return {
     id: 'links',
-    label: 'Associations',
+    label: 'Deal Links',
     renderNav: () => `
       <button class="nav-button" data-panel="links">
-        Associations <span class="nav-badge">-</span>
+        Deal Links <span class="nav-badge">↔</span>
       </button>`,
     renderPanel: () => `
       <section id="panel-links" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Associations</h2>
-            <p>Use <strong>Associate…</strong> in any record's ⋯ menu to link a deal to a
-               contact or company. This panel lets you inspect existing links.</p>
+            <h2>Deal Links — Associations Inspector</h2>
+            <p>This panel answers one question: which contacts and companies are attached
+               to the selected deal? New links are created from any row's
+               <strong>Associate…</strong> action.</p>
           </div>
-          <div class="sub-badge">No hand-typed IDs</div>
+          <div class="sub-badge">Shows link impact</div>
         </div>
 
-        <div class="grid-2">
-          <article class="section-card">
-            <h3>View Existing Links</h3>
-            <p>Pick a deal, then load its linked records.</p>
-            <div class="form-grid">
-              <div>
-                <label for="association-deal">Deal</label>
-                <select id="association-deal"></select>
-              </div>
-            </div>
-            <div class="actions">
-              ${hasContacts ? '<button id="btn-show-contacts" class="button button-primary">Show linked contacts</button>' : ''}
-              ${hasCompanies ? '<button id="btn-show-companies" class="button button-secondary">Show linked companies</button>' : ''}
-            </div>
-            <div id="association-output" class="association-list">
-              <div class="empty-note">Select a deal above and click a button to see its links.</div>
-            </div>
-          </article>
+        <article class="section-card">
+          <h3>Result of linking</h3>
+          <div id="association-status" class="association-item"></div>
+        </article>
 
+        <article class="section-card" style="margin-top:18px">
+          <h3>Current deal</h3>
+          <p>This is auto-selected after a successful <strong>Associate…</strong> action.
+             You only change it manually when you want to inspect another deal.</p>
+          <div class="form-grid">
+            <div>
+              <label for="association-deal">Inspect links for</label>
+              <select id="association-deal"></select>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card" style="margin-top:18px">
+          <h3>Auto-link missing deals</h3>
+          <p>Bulk mode scans every deal, skips existing links, and proposes one contact
+             and one company for deals that are still isolated. Preview first, then write.</p>
+          <div class="actions">
+            <button id="btn-preview-auto-links" class="button button-secondary">
+              Preview auto-link plan
+            </button>
+            <button id="btn-run-auto-links" class="button button-primary" disabled>
+              Run auto-link
+            </button>
+          </div>
+          <div class="helper">
+            Matching strategy: round-robin across current contacts and companies so the
+            sandbox data becomes connected without duplicating existing associations.
+          </div>
+        </article>
+
+        <div class="association-grid" style="margin-top:18px">
+          ${hasContacts ? `
           <article class="section-card">
-            <h3>How associations work</h3>
-            <p>In HubSpot, deals don't contain contact or company data — they reference them
-               through separate association records created via a PUT request.</p>
-            <div class="association-item">
-              <strong>Association type IDs</strong>
-              HubSpot uses fixed numeric IDs per object pair: deal↔contact = 3, deal↔company = 5.
+            <h3>Linked contacts</h3>
+            <p>People associated with the selected deal.</p>
+            <div id="association-contacts-output" class="association-list">
+              <div class="empty-note">Select a deal to see linked contacts.</div>
             </div>
-            <div class="association-item" style="margin-top:10px">
-              <strong>How to create a link</strong>
-              Open the ⋯ menu on any Deal, Contact, or Company row and choose
-              <em>Associate…</em> to link it without leaving the table.
+          </article>` : ''}
+
+          ${hasCompanies ? `
+          <article class="section-card">
+            <h3>Linked companies</h3>
+            <p>Companies associated with the selected deal.</p>
+            <div id="association-companies-output" class="association-list">
+              <div class="empty-note">Select a deal to see linked companies.</div>
             </div>
-          </article>
+          </article>` : ''}
         </div>
+
+        <article class="table-card" style="margin-top:18px">
+          <div class="table-toolbar">
+            <div>
+              <h3>Auto-link results</h3>
+              <p>Each row shows whether a deal was skipped, planned, created, or failed.</p>
+            </div>
+            <span id="bulk-link-count" class="pill">No preview yet</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Deal</th><th>Target</th><th>Action</th><th>Status</th></tr>
+              </thead>
+              <tbody id="bulk-link-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <details class="section-card" style="margin-top:18px">
+          <summary><strong>Developer note</strong></summary>
+          <p style="margin-top:12px">
+            HubSpot stores deal-contact and deal-company relationships as separate
+            association records, not embedded fields on the deal object.
+          </p>
+          <div class="association-item">
+            <strong>API behavior</strong>
+            This app creates links through <span class="mono">POST /api/associate</span>
+            and reads them through
+            <span class="mono">GET /api/associations/{dealId}/{objectType}</span>.
+          </div>
+        </details>
       </section>`,
     mount: container => {
-      container.querySelector('#btn-show-contacts')?.addEventListener('click', event =>
-        loadAssociations('contacts', event.currentTarget));
-      container.querySelector('#btn-show-companies')?.addEventListener('click', event =>
-        loadAssociations('companies', event.currentTarget));
+      container.querySelector('#association-deal')?.addEventListener('change', () =>
+        loadSelectedDealAssociations());
+      container.addEventListener('click', event => {
+        const button = event.target.closest('[data-associate-empty]');
+        if (!button || !container.contains(button)) return;
+        openAssociationForSelectedDeal(button.dataset.associateEmpty);
+      });
+      container.querySelector('#btn-preview-auto-links')?.addEventListener('click', event =>
+        previewBulkAutoLinks(event.currentTarget));
+      container.querySelector('#btn-run-auto-links')?.addEventListener('click', event =>
+        runBulkAutoLinks(event.currentTarget));
 
       document.addEventListener('crm:data-refreshed', () => {
-        const sel = container.querySelector('#association-deal');
-        if (sel) renderAssociationPlaceholder();
+        const selectedDealId = getSelectedAssociationDealId();
         renderLinkSelectors(state);
+        if (selectedDealId) setAssociationDeal(selectedDealId);
+        if (!container.classList.contains('panel-hidden')) {
+          void loadSelectedDealAssociations();
+        }
       });
+      document.addEventListener('crm:panel-shown', event => {
+        if (event.detail?.panel === 'links') {
+          renderAssociationStatus();
+          void loadSelectedDealAssociations();
+        }
+      });
+      document.addEventListener('crm:association-created', event => {
+        _lastAssociationEvent = event.detail ?? null;
+        if (_lastAssociationEvent?.dealId) {
+          setAssociationDeal(_lastAssociationEvent.dealId);
+        }
+        renderAssociationStatus();
+        if (!container.classList.contains('panel-hidden')) {
+          void loadSelectedDealAssociations();
+        }
+      });
+
       renderLinkSelectors(state);
+      renderAssociationStatus();
+      renderBulkLinkEmptyState();
     }
   };
 }
@@ -671,6 +1198,8 @@ function buildPluginOrderPayload(rows) {
 }
 
 function createSettingsDescriptor(availableModules) {
+  const storedNavOrder = getStoredNavOrder();
+
   return {
     id: 'settings',
     renderNav: () => `
@@ -682,9 +1211,9 @@ function createSettingsDescriptor(availableModules) {
         <div class="panel-header">
           <div>
             <h2>Module Settings</h2>
-            <p>System modules are saved to <span class="mono">appsettings.json</span>
-               and need a restart. Uploaded plugins are listed in the same module list
-               and can be deleted immediately.</p>
+            <p>Module choices are saved to <span class="mono">App_Data/runtime-settings.json</span>.
+               Built-in module changes restart the app automatically. Uploaded plugins are listed
+               in the same module list and can be deleted immediately.</p>
           </div>
           <div class="sub-badge">Modules + plugins</div>
         </div>
@@ -700,7 +1229,9 @@ function createSettingsDescriptor(availableModules) {
                   .slice(0, i + 1)
                   .filter(module => module.enabled)
                   .length;
-                const navOrder = m.enabled ? enabledIndex * 100 : 90_000 + i;
+                const fallbackOrder = m.enabled ? enabledIndex * 100 : 90_000 + i;
+                const storedIndex = storedNavOrder.indexOf(m.id);
+                const navOrder = storedIndex >= 0 ? storedIndex * 10 : fallbackOrder;
                 return `
                 <div class="module-toggle-row" data-module-id="${m.id}" data-nav-order="${navOrder}">
                   <input type="checkbox" class="module-checkbox" value="${m.id}" ${m.enabled ? 'checked' : ''}>
@@ -717,7 +1248,7 @@ function createSettingsDescriptor(availableModules) {
             <div class="actions" style="margin-top:20px">
               <button id="btn-save-modules" class="button button-primary">Save changes</button>
             </div>
-            <div class="helper">After saving, stop and restart the server — then reload the page.</div>
+            <div class="helper">After saving, the app restarts automatically. If IIS blocks the write, the error will name the folder that needs permission.</div>
           </article>
 
           <article class="section-card">
@@ -770,6 +1301,12 @@ function createSettingsDescriptor(availableModules) {
             if (row.dataset.utilityId) utilityOrders[row.dataset.utilityId] = i * 10;
           });
           localStorage.setItem(UTILITY_ORDER_KEY, JSON.stringify(utilityOrders));
+
+          // Save full nav order as flat ID list so menu matches settings on reload
+          const navOrderList = rows
+            .map(row => row.dataset.moduleId || row.dataset.pluginId || row.dataset.utilityId)
+            .filter(Boolean);
+          localStorage.setItem(NAV_ORDER_KEY, JSON.stringify(navOrderList));
 
           await apiFetch('/api/modules', 'POST', {
             modules: ordered,
@@ -936,9 +1473,13 @@ function createSettingsDescriptor(availableModules) {
 export async function mountUtilityPanels() {
   const disabledUtility = getDisabledUtilityIds();
   const storedOrder = getStoredUtilityOrder();
+  const storedNavOrder = getStoredNavOrder();
 
   function registerUtility(desc, defaultNavOrder) {
-    desc._navOrder = storedOrder[desc.id] ?? defaultNavOrder;
+    const storedNavIndex = storedNavOrder.indexOf(desc.id);
+    desc._navOrder = storedNavIndex >= 0
+      ? storedNavIndex * 10
+      : storedOrder[desc.id] ?? defaultNavOrder;
     _descriptorCache.set(desc.id, desc);
     if (!disabledUtility.includes(desc.id)) appendPanel(desc);
   }

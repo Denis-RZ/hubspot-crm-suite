@@ -15,11 +15,15 @@ public sealed class ContactsService
     public async Task<IReadOnlyDictionary<string, object?>> BuildBootstrapAsync(
         CancellationToken cancellationToken = default)
     {
-        var contacts = await _client.ListContactsAsync(100, cancellationToken);
+        var contactsTask = _client.ListContactsAsync(100, cancellationToken);
+        var lifecycleOptionsTask = _client.GetContactLifecycleOptionsAsync(cancellationToken);
+
+        await Task.WhenAll(contactsTask, lifecycleOptionsTask);
 
         return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
         {
-            ["contacts"] = contacts
+            ["contacts"] = await contactsTask,
+            ["contactLifecycleOptions"] = await lifecycleOptionsTask
         };
     }
 

@@ -91,6 +91,19 @@ public static class DealsEndpoints
                 return Results.Ok(await service.GetAssociationsAsync(dealId, objectType, cancellationToken));
             }));
 
+        app.MapGet("/api/associations/{fromType}/{objectId}/deals", async (
+            DealsService service,
+            string fromType,
+            string objectId,
+            CancellationToken cancellationToken) =>
+            await ApiEndpointHelpers.ExecuteAsync(async () =>
+            {
+                if (!AllowedObjectTypes.Contains(fromType))
+                    return Results.BadRequest(new { error = $"'fromType' must be one of: {string.Join(", ", AllowedObjectTypes)}." });
+
+                return Results.Ok(await service.GetObjectAssociationsAsync(fromType, objectId, "deals", cancellationToken));
+            }));
+
         app.MapGet("/api/pipelines", async (
             DealsService service,
             CancellationToken cancellationToken) =>

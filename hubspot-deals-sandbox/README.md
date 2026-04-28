@@ -10,32 +10,24 @@
 - создание сделки из JSON-файла
 - обновление сделки из JSON-файла
 
-## Тестовый аккаунт (developer sandbox)
+## HubSpot sandbox
 
-| Параметр | Значение |
-|----------|----------|
-| Email | baidu27@gmail.com |
-| Password | Hhupdate2026! |
-| Developer Portal ID | 245936867 |
-| Developer Portal URL | https://app-na2.hubspot.com/developer-overview/245936867 |
-| CRM Test Account Portal ID | 245936905 |
-| CRM Test Account URL | https://app-na2.hubspot.com/private-apps/245936905 |
+Проект работает с HubSpot через Private App token. Для приватного серверного
+деплоя токен лежит в `appsettings.json` в секции `HubSpot:AccessToken`.
+Переменная окружения `HUBSPOT_ACCESS_TOKEN` может переопределить это значение.
+Токен не отдается в браузер и не хранится во frontend-файлах.
 
-### Private App (HHUpdate-Sandbox)
+Минимальные scopes для private app:
 
-Создан в CRM Test Account (portal 245936905).
-
-Scopes: `crm.objects.deals.read/write`, `crm.objects.contacts.read/write`, `crm.objects.companies.read/write`
-
-| Параметр | Значение |
-|----------|----------|
-| App ID | 36939381 |
-| Access Token | pat-na2-a8cfa91f-5d5e-4e0c-abfa-a244c19fae23 |
+- `crm.objects.deals.read/write`
+- `crm.objects.contacts.read/write`
+- `crm.objects.companies.read/write`
+- association read/write scopes для deal-contact и deal-company связей
 
 ## Перед запуском
 
 ```powershell
-$env:HUBSPOT_ACCESS_TOKEN = "pat-na2-a8cfa91f-5d5e-4e0c-abfa-a244c19fae23"
+dotnet run -- web
 ```
 
 ## Команды

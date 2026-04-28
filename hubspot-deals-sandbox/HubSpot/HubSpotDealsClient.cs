@@ -172,6 +172,21 @@ public sealed class HubSpotDealsClient
             .ToList();
     }
 
+    public async Task<IReadOnlyList<HubSpotPropertyOption>> GetContactLifecycleOptionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var property = await SendAsync<HubSpotPropertyDefinition>(
+            HttpMethod.Get,
+            "crm/v3/properties/contacts/lifecyclestage",
+            payload: null,
+            cancellationToken);
+
+        return property.Options
+            .OrderBy(option => option.DisplayOrder)
+            .ThenBy(option => option.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     // 用 HubSpot 的 search API 依屬性條件查詢 deals。
     // 這裡用 POST，是因為 filter body 可能比 query string 更長也更複雜。
     public async Task<IReadOnlyList<HubSpotDealRecord>> SearchDealsAsync(
@@ -192,7 +207,8 @@ public sealed class HubSpotDealsClient
     // 建立 deal 與 contact/company 的關聯。
     // HubSpot 需要 association type id；標準物件的 type id 是固定值：
     // 3 = deal_to_contact
-    // 5 = deal_to_company
+    // Deal-company uses the default/unlabeled v4 endpoint. The old v3 type id 5
+    // means primary company and replaces the existing primary association.
     public async Task AssociateDealAsync(
         string dealId,
         string toObjectType,
@@ -201,10 +217,20 @@ public sealed class HubSpotDealsClient
     {
         ValidateDealId(dealId);
 
-        var typeId = toObjectType.ToLowerInvariant() switch
+        var normalizedType = toObjectType.ToLowerInvariant();
+        if (normalizedType is "companies" or "company")
+        {
+            await SendEmptyAsync(
+                HttpMethod.Put,
+                $"crm/objects/2026-03/deals/{dealId}/associations/default/companies/{toObjectId}",
+                cancellationToken,
+                sendJsonBody: false);
+            return;
+        }
+
+        var typeId = normalizedType switch
         {
             "contacts" or "contact" => 3,  // deal → contact
-            "companies" or "company" => 5, // deal → company
             _ => throw new ArgumentException(
                      $"Unsupported object type '{toObjectType}'. Use 'contacts' or 'companies'.")
         };
@@ -223,9 +249,63 @@ public sealed class HubSpotDealsClient
     {
         ValidateDealId(dealId);
 
+        if (toObjectType.Equals("companies", StringComparison.OrdinalIgnoreCase) ||
+            toObjectType.Equals("company", StringComparison.OrdinalIgnoreCase))
+        {
+            var companyResponse = await SendAsync<HubSpotListResponse<HubSpotAssociationV4Record>>(
+                HttpMethod.Get,
+                $"crm/objects/2026-03/deals/{dealId}/associations/companies",
+                payload: null,
+                cancellationToken);
+
+            return companyResponse.Results
+                .Select(record => new HubSpotAssociationRecord
+                {
+                    Id = record.ToObjectId.ToString(),
+                    Type = record.AssociationTypes.FirstOrDefault()?.Label ?? "deal_to_company",
+                })
+                .ToList();
+        }
+
         var response = await SendAsync<HubSpotListResponse<HubSpotAssociationRecord>>(
             HttpMethod.Get,
             $"crm/v3/objects/deals/{dealId}/associations/{toObjectType}",
+            payload: null,
+            cancellationToken);
+
+        return response.Results;
+    }
+
+    // 讀取任意 CRM 物件（contact/company）關聯的 deals 清單。
+    public async Task<IReadOnlyList<HubSpotAssociationRecord>> GetObjectAssociationsAsync(
+        string fromObjectType,
+        string objectId,
+        string toObjectType,
+        CancellationToken cancellationToken = default)
+    {
+        if ((fromObjectType.Equals("companies", StringComparison.OrdinalIgnoreCase) ||
+             fromObjectType.Equals("company", StringComparison.OrdinalIgnoreCase)) &&
+            (toObjectType.Equals("deals", StringComparison.OrdinalIgnoreCase) ||
+             toObjectType.Equals("deal", StringComparison.OrdinalIgnoreCase)))
+        {
+            var companyResponse = await SendAsync<HubSpotListResponse<HubSpotAssociationV4Record>>(
+                HttpMethod.Get,
+                $"crm/objects/2026-03/companies/{objectId}/associations/deals",
+                payload: null,
+                cancellationToken);
+
+            return companyResponse.Results
+                .Select(record => new HubSpotAssociationRecord
+                {
+                    Id = record.ToObjectId.ToString(),
+                    Type = record.AssociationTypes.FirstOrDefault()?.Label ?? "company_to_deal",
+                })
+                .ToList();
+        }
+
+        var response = await SendAsync<HubSpotListResponse<HubSpotAssociationRecord>>(
+            HttpMethod.Get,
+            $"crm/v3/objects/{fromObjectType}/{objectId}/associations/{toObjectType}",
             payload: null,
             cancellationToken);
 
@@ -236,11 +316,12 @@ public sealed class HubSpotDealsClient
     private async Task SendEmptyAsync(
         HttpMethod method,
         string route,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool sendJsonBody = true)
     {
         using var request = new HttpRequestMessage(method, route);
 
-        if (method != HttpMethod.Delete)
+        if (sendJsonBody && method != HttpMethod.Delete)
         {
             request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
         }

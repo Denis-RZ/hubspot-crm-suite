@@ -108,4 +108,15 @@ public sealed class DealsService
         _moduleAvailability.EnsureEnabled(objectType);
         return _client.GetDealAssociationsAsync(dealId, objectType, cancellationToken);
     }
+
+    public Task<IReadOnlyList<HubSpotAssociationRecord>> GetObjectAssociationsAsync(
+        string fromObjectType,
+        string objectId,
+        string toObjectType,
+        CancellationToken cancellationToken = default)
+    {
+        _moduleAvailability.EnsureEnabled(fromObjectType);
+        _moduleAvailability.EnsureEnabled(toObjectType);
+        return _client.GetObjectAssociationsAsync(fromObjectType, objectId, toObjectType, cancellationToken);
+    }
 }

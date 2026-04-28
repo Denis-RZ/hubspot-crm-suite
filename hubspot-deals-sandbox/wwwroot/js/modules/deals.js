@@ -1,7 +1,9 @@
 import { apiFetch, normalizeApiError } from '../api.js';
 import { fillDealForm, buildDealPayload, clearDealForm, crudState, setFormMode, syncCrudForms } from '../forms.js';
 import {
+  insertPanelRow,
   renderDealFilterOptions,
+  renderDealLinksRow,
   renderDealRowEdit,
   renderDealTable,
   renderPipelineSelectors,
@@ -14,6 +16,35 @@ import { linksPanelAvailable } from '../utility-panels.js';
 import { openAssociateModal } from '../associate-modal.js';
 import { cancelInlineEdit, cancelAnyOpenEdit } from '../inline-edit.js';
 import { getPage, setPage, resetPage, clampPage, getPageSize, setPageSize } from '../pagination.js';
+
+const DEAL_LINK_TYPES = ['contacts', 'companies'];
+const ASSOCIATION_REFRESH_RETRY_MS = 500;
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function enabledDealLinkTypes() {
+  return DEAL_LINK_TYPES.filter(type => state.enabledModules.includes(type));
+}
+
+function associationIds(records) {
+  return (records || [])
+    .map(record => String(record?.id ?? record?.toObjectId ?? record?.objectId ?? ''))
+    .filter(Boolean);
+}
+
+function linkedRecords(ids, records, fallback) {
+  return ids.map(id => records.find(record => String(record.id) === id) ?? fallback(id));
+}
+
+async function loadDealAssociations(dealId, linkTypes) {
+  return Object.fromEntries(await Promise.all(
+    linkTypes.map(async type => [
+      type,
+      await apiFetch(`/api/associations/${encodeURIComponent(dealId)}/${encodeURIComponent(type)}`),
+    ])));
+}
 
 function resetDealForm() {
   clearDealForm();
@@ -44,6 +75,7 @@ function renderDealUi() {
 
   renderDealTable(state.visibleDeals, state.searchActive, {
     linksEnabled: linksPanelAvailable(),
+    linkedObjectTypes: enabledDealLinkTypes(),
     page: clampPage('deals', state.visibleDeals.length),
     pageSize: getPageSize('deals'),
   });
@@ -136,6 +168,7 @@ function applyDealFilters() {
   resetPage('deals');
   renderDealTable(state.visibleDeals, isActive, {
     linksEnabled: linksPanelAvailable(),
+    linkedObjectTypes: enabledDealLinkTypes(),
     page: 1,
   });
 }
@@ -194,6 +227,86 @@ async function saveInlineEditDeal(dealId, button) {
     toast('Failed to update deal', 'error');
     setLoading(button, false);
   }
+}
+
+function collapseLinksPanel(dealId) {
+  const panel = document.querySelector(`#deal-table-body tr[data-links-for="${dealId}"]`);
+  if (!panel) return;
+  const parentRow = panel.previousElementSibling;
+  panel.remove();
+  parentRow?.classList.remove('row-editing-parent', 'row-links-parent');
+  const toggle = document.querySelector(`#deal-table-body button[data-action="view-deal-links"][data-id="${dealId}"]`);
+  if (toggle) { toggle.textContent = '▶'; toggle.classList.remove('open'); }
+}
+
+async function showDealLinks(dealId, options = {}) {
+  const { refresh = false } = options;
+  const existingPanel = document.querySelector(`#deal-table-body tr[data-links-for="${dealId}"]`);
+  if (existingPanel && !refresh) {
+    collapseLinksPanel(dealId);
+    return;
+  }
+
+  const linkTypes = enabledDealLinkTypes();
+  if (!linkTypes.length) return;
+
+  const row = document.querySelector(`#deal-table-body tr[data-id="${dealId}"]`);
+  if (!row) return;
+  if (!refresh) {
+    cancelAnyOpenEdit();
+  }
+
+  const loadingRow = existingPanel
+    ?? insertPanelRow(row, 6, '<p class="empty-note" style="margin:0">Loading…</p>', { kind: 'links' });
+  if (existingPanel) {
+    existingPanel.innerHTML = '<td colspan="6"><div class="edit-panel"><p class="empty-note" style="margin:0">Refreshing...</p></div></td>';
+  }
+  loadingRow.dataset.linksFor = dealId;
+
+  try {
+    let assocEntries = await loadDealAssociations(dealId, linkTypes);
+    if (refresh && options.expectedObjectType && options.expectedObjectId &&
+      linkTypes.includes(options.expectedObjectType) &&
+      !associationIds(assocEntries[options.expectedObjectType]).includes(String(options.expectedObjectId))) {
+      await delay(ASSOCIATION_REFRESH_RETRY_MS);
+      assocEntries = await loadDealAssociations(dealId, linkTypes);
+    }
+
+    const linkedContacts = linkTypes.includes('contacts')
+      ? linkedRecords(
+        associationIds(assocEntries.contacts),
+        state.contacts,
+        id => ({ id, _missing: true, properties: {} }))
+      : [];
+    const linkedCompanies = linkTypes.includes('companies')
+      ? linkedRecords(
+        associationIds(assocEntries.companies),
+        state.companies,
+        id => ({ id, _missing: true, properties: {} }))
+      : [];
+
+    loadingRow.remove();
+    row.classList.remove('row-editing-parent', 'row-links-parent');
+
+    const panelRow = renderDealLinksRow(row, linkedContacts, linkedCompanies, linkTypes);
+    panelRow.dataset.linksFor = dealId;
+
+    const toggle = row.querySelector('button[data-action="view-deal-links"]');
+    if (toggle) { toggle.textContent = '▼'; toggle.classList.add('open'); }
+  }
+  catch {
+    loadingRow.querySelector('p').textContent = 'Failed to load links.';
+  }
+}
+
+function refreshDealLinksIfOpen(event) {
+  const dealId = event.detail?.dealId;
+  if (!dealId || !document.querySelector(`#deal-table-body tr[data-links-for="${dealId}"]`)) return;
+  void showDealLinks(dealId, {
+    refresh: true,
+    expectedObjectType: event.detail?.objectType,
+    expectedObjectId: event.detail?.objectId,
+  });
 }
 
 export default {
@@ -269,6 +382,7 @@ export default {
               <table>
                 <thead>
                   <tr>
+                    <th class="col-expand"></th>
                     <th>Name</th><th>Stage</th>
                     <th>Amount</th><th>Pipeline</th><th>Actions</th>
                   </tr>
@@ -301,6 +415,7 @@ export default {
         const deal = state.deals.find(d => d.id === id);
         openAssociateModal('deal', id, deal?.properties.dealname || id);
       }
+      if (action === 'view-deal-links') await showDealLinks(id);
       if (action === 'edit-deal') startInlineEditDeal(id);
       if (action === 'delete-deal') await deleteDeal(id, button);
       if (action === 'save-deal-inline') await saveInlineEditDeal(id, button);
@@ -322,6 +437,7 @@ export default {
     });
 
     document.addEventListener('crm:data-refreshed', renderDealUi);
+    document.addEventListener('crm:association-created', refreshDealLinksIfOpen);
     renderDealUi();
   }
 };

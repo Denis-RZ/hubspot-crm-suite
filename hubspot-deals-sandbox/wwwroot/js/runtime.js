@@ -19,6 +19,7 @@ export async function refreshAll(button) {
     state.contacts = data.contacts || [];
     state.companies = data.companies || [];
     state.companyIndustryOptions = data.companyIndustryOptions || [];
+    state.contactLifecycleOptions = data.contactLifecycleOptions || [];
     state.visibleDeals = [...state.deals];
     state.searchActive = false;
 

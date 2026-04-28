@@ -226,6 +226,24 @@ public sealed class HubSpotAssociationRecord
 
 // ─── Error model ──────────────────────────────────────────────────────────
 
+public sealed class HubSpotAssociationV4Record
+{
+    [JsonPropertyName("toObjectId")]
+    public long ToObjectId { get; init; }
+
+    [JsonPropertyName("associationTypes")]
+    public List<HubSpotAssociationV4Type> AssociationTypes { get; init; } = [];
+}
+
+public sealed class HubSpotAssociationV4Type
+{
+    [JsonPropertyName("label")]
+    public string? Label { get; init; }
+
+    [JsonPropertyName("typeId")]
+    public int TypeId { get; init; }
+}
+
 public sealed class HubSpotErrorResponse
 {
     [JsonPropertyName("message")]

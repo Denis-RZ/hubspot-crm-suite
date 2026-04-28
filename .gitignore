@@ -17,3 +17,21 @@
 # OS and editor
 .DS_Store
 Thumbs.db
+
+# Temp screenshots and browser session files
+*.png
+!hubspot-deals-sandbox-presentation/screenshots/*.png
+.playwright-mcp/
+
+# Server artifacts and runtime files
+hubspot-deals-sandbox/artifacts/
+hubspot-deals-sandbox/App_Data/
+hubspot-deals-sandbox/logs/
+hubspot-deals-sandbox/web.config
+
+# Job search files
+hubspot-deals-sandbox-presentation/104-*.csv
+hubspot-deals-sandbox-presentation/104-*.md
+
+# Misc
+package.json

@@ -41,6 +41,9 @@ export function showPanel(panelName) {
   document.querySelectorAll('.workflow-step').forEach(s => {
     s.classList.toggle('active-step', s.dataset.step === panelName);
   });
+  document.dispatchEvent(new CustomEvent('crm:panel-shown', {
+    detail: { panel: panelName },
+  }));
 }
 
 // ── Sidebar counters ──────────────────────────────────────────────────────────

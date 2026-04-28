@@ -12,31 +12,38 @@ var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
 {
     WriteIndented = true
 };
+var settingsJsonOptions = new JsonSerializerOptions
+{
+    WriteIndented = true
+};
 
 var exitCode = await RunAsync(args);
 return exitCode;
 
 async Task<int> RunAsync(string[] args)
 {
-    if (args.Length == 0 || IsHelpCommand(args[0]))
+    if (args.Length > 0 && IsHelpCommand(args[0]))
     {
         PrintUsage();
         return 0;
     }
 
-    var accessToken = Environment.GetEnvironmentVariable("HUBSPOT_ACCESS_TOKEN");
+    var accessToken = GetHubSpotAccessToken();
     if (string.IsNullOrWhiteSpace(accessToken))
     {
-        Console.Error.WriteLine("Set HUBSPOT_ACCESS_TOKEN before running this sandbox.");
+        Console.Error.WriteLine(
+            "Set HUBSPOT_ACCESS_TOKEN or HubSpot:AccessToken in appsettings.json before running this sandbox.");
         return 1;
     }
 
     using var httpClient = new HttpClient();
     var client = new HubSpotDealsClient(httpClient, accessToken);
 
+    var command = args.Length == 0 ? "web" : args[0].ToLowerInvariant();
+
     try
     {
-        switch (args[0].ToLowerInvariant())
+        switch (command)
         {
             case "list":
                 await ListDealsAsync(client, args);
@@ -71,7 +78,7 @@ async Task<int> RunAsync(string[] args)
                 break;
 
             default:
-                Console.Error.WriteLine($"Unknown command: {args[0]}");
+                Console.Error.WriteLine($"Unknown command: {command}");
                 PrintUsage();
                 return 1;
         }
@@ -304,6 +311,82 @@ string TrimToWidth(string? value, int width)
     return value.Length <= width ? value : $"{value[..(width - 3)]}...";
 }
 
+string? GetHubSpotAccessToken()
+{
+    var envToken = Environment.GetEnvironmentVariable("HUBSPOT_ACCESS_TOKEN");
+    if (!string.IsNullOrWhiteSpace(envToken))
+    {
+        return envToken;
+    }
+
+    foreach (var basePath in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory }.Distinct())
+    {
+        var settingsPath = Path.Combine(basePath, "appsettings.json");
+        if (!File.Exists(settingsPath))
+        {
+            continue;
+        }
+
+        using var document = JsonDocument.Parse(File.ReadAllText(settingsPath));
+        if (document.RootElement.TryGetProperty("HubSpot", out var hubSpot) &&
+            hubSpot.TryGetProperty("AccessToken", out var token) &&
+            !string.IsNullOrWhiteSpace(token.GetString()))
+        {
+            return token.GetString();
+        }
+    }
+
+    return null;
+}
+
+string GetRuntimeSettingsPath(string contentRootPath) =>
+    Path.Combine(contentRootPath, "App_Data", "runtime-settings.json");
+
+RuntimeModuleSettings? LoadRuntimeModuleSettings(string contentRootPath)
+{
+    var settingsPath = GetRuntimeSettingsPath(contentRootPath);
+    if (!File.Exists(settingsPath))
+    {
+        return null;
+    }
+
+    try
+    {
+        var settings = JsonSerializer.Deserialize<RuntimeModuleSettings>(
+            File.ReadAllText(settingsPath),
+            settingsJsonOptions);
+        return settings?.Modules is { Length: > 0 } ? settings : null;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[Settings] Could not read {settingsPath}: {ex.Message}");
+        return null;
+    }
+}
+
+async Task SaveRuntimeModuleSettingsAsync(string contentRootPath, string[] moduleIds)
+{
+    var appDataPath = Path.Combine(contentRootPath, "App_Data");
+    Directory.CreateDirectory(appDataPath);
+
+    var settingsPath = GetRuntimeSettingsPath(contentRootPath);
+    var json = JsonSerializer.Serialize(
+        new RuntimeModuleSettings(moduleIds),
+        settingsJsonOptions);
+
+    await File.WriteAllTextAsync(settingsPath, json);
+}
+
+IResult BuildSettingsSaveProblem(string contentRootPath, Exception ex)
+{
+    var appDataPath = Path.Combine(contentRootPath, "App_Data");
+    Console.Error.WriteLine($"[Settings] Could not save module settings to {appDataPath}: {ex}");
+    return Results.Problem(
+        title: "Could not save module settings",
+        detail: $"Grant Modify/Write permission to the IIS application pool for '{appDataPath}'. {ex.Message}",
+        statusCode: StatusCodes.Status500InternalServerError);
+}
+
 void PrintUsage()
 {
     Console.WriteLine(
@@ -340,12 +423,28 @@ void PrintUsage()
 async Task RunWebAsync(string accessToken)
 {
     var builder = WebApplication.CreateBuilder(Array.Empty<string>());
-    builder.WebHost.UseUrls("http://localhost:5100");
+    var isHostedByIis =
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_PORT")) ||
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_IIS_PHYSICAL_PATH"));
+
+    if (!isHostedByIis)
+    {
+        builder.WebHost.UseUrls("http://localhost:5100");
+    }
+
     builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
+    var runtimeSettings = LoadRuntimeModuleSettings(builder.Environment.ContentRootPath);
+    var configuredModuleIds = runtimeSettings?.Modules ??
+        builder.Configuration.GetSection("Modules").Get<string[]>();
+    var settingsSourceName = runtimeSettings is null
+        ? "appsettings.json"
+        : GetRuntimeSettingsPath(builder.Environment.ContentRootPath);
+
     var enabledModules = CrmModuleCatalog.LoadEnabledModules(
-        builder.Configuration,
-        Assembly.GetExecutingAssembly());
+        configuredModuleIds,
+        Assembly.GetExecutingAssembly(),
+        settingsSourceName);
 
     builder.Services.AddHttpClient("HubSpot");
     builder.Services.AddSingleton(sp =>
@@ -408,7 +507,11 @@ async Task RunWebAsync(string accessToken)
         IHostApplicationLifetime lifetime,
         PluginRegistry plugins) =>
     {
-        var moduleIds = request.Modules;
+        var moduleIds = request.Modules
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         if (moduleIds.Length == 0)
             return Results.BadRequest(new { error = "At least one module must be enabled." });
 
@@ -417,30 +520,40 @@ async Task RunWebAsync(string accessToken)
         if (unknown.Length > 0)
             return Results.BadRequest(new { error = $"Unknown module(s): {string.Join(", ", unknown)}" });
 
-        if (request.Plugins is not null)
+        try
         {
-            var pluginOrders = request.Plugins
-                .Where(item => !string.IsNullOrWhiteSpace(item.Id))
-                .GroupBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Last().NavOrder,
-                    StringComparer.OrdinalIgnoreCase);
-
-            var unknownPlugins = plugins.SaveOrder(pluginOrders);
-            if (unknownPlugins.Length > 0)
+            if (request.Plugins is not null)
             {
-                return Results.BadRequest(new { error = $"Unknown plugin(s): {string.Join(", ", unknownPlugins)}" });
+                var pluginOrders = request.Plugins
+                    .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+                    .GroupBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Last().NavOrder,
+                        StringComparer.OrdinalIgnoreCase);
+
+                if (pluginOrders.Count > 0)
+                {
+                    var unknownPlugins = plugins.SaveOrder(pluginOrders);
+                    if (unknownPlugins.Length > 0)
+                    {
+                        return Results.BadRequest(new { error = $"Unknown plugin(s): {string.Join(", ", unknownPlugins)}" });
+                    }
+                }
             }
+
+            await SaveRuntimeModuleSettingsAsync(env.ContentRootPath, moduleIds);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return BuildSettingsSaveProblem(env.ContentRootPath, ex);
+        }
+        catch (IOException ex)
+        {
+            return BuildSettingsSaveProblem(env.ContentRootPath, ex);
         }
 
-        var settingsPath = Path.Combine(env.ContentRootPath, "appsettings.json");
-        var json = System.Text.Json.JsonSerializer.Serialize(
-            new { Modules = moduleIds },
-            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(settingsPath, json);
-
-        // Give the response time to reach the browser before shutting down
+        // Give the response time to reach the browser before shutting down.
         _ = Task.Run(async () =>
         {
             await Task.Delay(600);
@@ -624,19 +737,24 @@ async Task RunWebAsync(string accessToken)
 
     app.Lifetime.ApplicationStarted.Register(() =>
     {
-        Console.WriteLine("Web UI running at http://localhost:5100");
+        Console.WriteLine(isHostedByIis
+            ? "Web UI running behind IIS."
+            : "Web UI running at http://localhost:5100");
         Console.WriteLine("Press Ctrl+C to stop.");
 
-        try
+        if (!isHostedByIis)
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("http://localhost:5100")
+            try
             {
-                UseShellExecute = true
-            });
-        }
-        catch
-        {
-            // Opening the browser is optional.
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("http://localhost:5100")
+                {
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                // Opening the browser is optional.
+            }
         }
     });
 
@@ -646,3 +764,5 @@ async Task RunWebAsync(string accessToken)
 public sealed record ModuleSettingsRequest(string[] Modules, PluginOrderRequest[]? Plugins);
 
 public sealed record PluginOrderRequest(string Id, int NavOrder);
+
+public sealed record RuntimeModuleSettings(string[] Modules);

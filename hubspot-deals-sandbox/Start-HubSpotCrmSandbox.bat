@@ -11,6 +11,11 @@ set "PORT=5100"
 set "URL=http://localhost:%PORT%"
 set "STDOUT_LOG=%SCRIPT_DIR%\webserver.stdout.log"
 set "STDERR_LOG=%SCRIPT_DIR%\webserver.stderr.log"
+set "APP_CMD=dotnet run --project ""%SCRIPT_DIR%\HubSpotDealsSandbox.csproj"" -- web"
+
+if exist "%SCRIPT_DIR%\HubSpotDealsSandbox.exe" (
+    set "APP_CMD=""%SCRIPT_DIR%\HubSpotDealsSandbox.exe"" web"
+)
 
 pushd "%SCRIPT_DIR%" >nul
 
@@ -21,23 +26,13 @@ if errorlevel 1 (
 )
 
 if not defined HUBSPOT_ACCESS_TOKEN (
-    for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$readme = Join-Path '%SCRIPT_DIR%' 'README.md'; if (Test-Path $readme) { $m = [regex]::Match((Get-Content -Raw $readme), 'pat-[A-Za-z0-9\\-]+'); if ($m.Success) { $m.Value } }"`) do (
-        set "HUBSPOT_ACCESS_TOKEN=%%I"
-    )
-)
-
-if not defined HUBSPOT_ACCESS_TOKEN (
-    echo HUBSPOT_ACCESS_TOKEN is not set.
-    echo Set it before launching the sandbox:
-    echo   set HUBSPOT_ACCESS_TOKEN=your-token
-    popd >nul
-    exit /b 1
+    echo HUBSPOT_ACCESS_TOKEN is not set. Falling back to HubSpot:AccessToken in appsettings.json.
 )
 
 echo Starting HubSpot CRM Sandbox on %URL% ...
 del "%STDOUT_LOG%" "%STDERR_LOG%" 2>nul
 
-start "HubSpot CRM Sandbox" cmd /c "cd /d ""%SCRIPT_DIR%"" && dotnet run --project ""%SCRIPT_DIR%\HubSpotDealsSandbox.csproj"" -- web 1>>""%STDOUT_LOG%"" 2>>""%STDERR_LOG%"""
+start "HubSpot CRM Sandbox" cmd /c "cd /d ""%SCRIPT_DIR%"" && %APP_CMD% 1>>""%STDOUT_LOG%"" 2>>""%STDERR_LOG%"""
 
 for /l %%I in (1,1,30) do (
     call :GetListeningPid "%PORT%" RUNNING_PID

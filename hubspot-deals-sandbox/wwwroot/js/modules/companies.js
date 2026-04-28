@@ -8,8 +8,10 @@ import {
   syncCrudForms,
 } from '../forms.js';
 import {
+  insertPanelRow,
   renderCompanyFilterOptions,
   renderCompanyIndustryOptions,
+  renderCompanyLinksRow,
   renderCompanyRowEdit,
   renderCompanyTable,
 } from '../renders.js';
@@ -20,6 +22,27 @@ import { linksPanelAvailable } from '../utility-panels.js';
 import { openAssociateModal } from '../associate-modal.js';
 import { cancelInlineEdit, cancelAnyOpenEdit } from '../inline-edit.js';
 import { getPage, setPage, resetPage, clampPage, getPageSize, setPageSize } from '../pagination.js';
+
+const ASSOCIATION_REFRESH_RETRY_MS = 500;
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function associationIds(records) {
+  return (records || [])
+    .map(record => String(record?.id ?? record?.toObjectId ?? record?.objectId ?? ''))
+    .filter(Boolean);
+}
+
+function linkedDeals(ids) {
+  return ids.map(id =>
+    state.deals.find(deal => String(deal.id) === id) ?? { id, _missing: true, properties: {} });
+}
+
+async function loadCompanyDealAssociations(companyId) {
+  return await apiFetch(`/api/associations/companies/${encodeURIComponent(companyId)}/deals`);
+}
 
 function getIndustryOptions() {
   return state.companyIndustryOptions.length
@@ -200,6 +223,66 @@ async function saveInlineEditCompany(companyId, button) {
   }
 }
 
+function collapseCompanyLinksPanel(companyId) {
+  const panel = document.querySelector(`#company-table-body tr[data-links-for="${companyId}"]`);
+  if (!panel) return;
+  const parentRow = panel.previousElementSibling;
+  panel.remove();
+  parentRow?.classList.remove('row-editing-parent', 'row-links-parent');
+  const toggle = document.querySelector(`#company-table-body button[data-action="view-company-links"][data-id="${companyId}"]`);
+  if (toggle) { toggle.textContent = '▶'; toggle.classList.remove('open'); }
+}
+
+async function showCompanyLinks(companyId, options = {}) {
+  const { refresh = false } = options;
+  const existingPanel = document.querySelector(`#company-table-body tr[data-links-for="${companyId}"]`);
+  if (existingPanel && !refresh) { collapseCompanyLinksPanel(companyId); return; }
+
+  const row = document.querySelector(`#company-table-body tr[data-id="${companyId}"]`);
+  if (!row) return;
+  if (!refresh) {
+    cancelAnyOpenEdit();
+  }
+
+  const loadingRow = existingPanel
+    ?? insertPanelRow(row, 6, '<p class="empty-note" style="margin:0">Loading…</p>', { kind: 'links' });
+  if (existingPanel) {
+    existingPanel.innerHTML = '<td colspan="6"><div class="edit-panel"><p class="empty-note" style="margin:0">Refreshing...</p></div></td>';
+  }
+  loadingRow.dataset.linksFor = companyId;
+
+  try {
+    let assocs = await loadCompanyDealAssociations(companyId);
+    if (refresh && options.expectedDealId &&
+      !associationIds(assocs).includes(String(options.expectedDealId))) {
+      await delay(ASSOCIATION_REFRESH_RETRY_MS);
+      assocs = await loadCompanyDealAssociations(companyId);
+    }
+    const deals = linkedDeals(associationIds(assocs));
+
+    loadingRow.remove();
+    row.classList.remove('row-editing-parent', 'row-links-parent');
+    const panelRow = renderCompanyLinksRow(row, deals);
+    panelRow.dataset.linksFor = companyId;
+
+    const toggle = row.querySelector('button[data-action="view-company-links"]');
+    if (toggle) { toggle.textContent = '▼'; toggle.classList.add('open'); }
+  }
+  catch {
+    loadingRow.querySelector('p').textContent = 'Failed to load links.';
+  }
+}
+
+function refreshCompanyLinksIfOpen(event) {
+  const { objectType, objectId } = event.detail ?? {};
+  if (objectType !== 'companies' || !objectId) return;
+  if (!document.querySelector(`#company-table-body tr[data-links-for="${objectId}"]`)) return;
+  void showCompanyLinks(objectId, {
+    refresh: true,
+    expectedDealId: event.detail?.dealId,
+  });
+}
+
 export default {
   id: 'companies',
   label: 'Companies',
@@ -268,7 +351,7 @@ export default {
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Name</th><th>Domain</th><th>City</th><th>Industry</th><th>Actions</th></tr>
+                  <tr><th class="col-expand"></th><th>Name</th><th>Domain</th><th>City</th><th>Industry</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="company-table-body"></tbody>
               </table>
@@ -294,6 +377,7 @@ export default {
         const co = state.companies.find(x => x.id === id);
         openAssociateModal('company', id, co?.properties.name || id);
       }
+      if (action === 'view-company-links') await showCompanyLinks(id);
       if (action === 'edit-company') startInlineEditCompany(id);
       if (action === 'delete-company') await deleteCompany(id, button);
       if (action === 'save-company-inline') await saveInlineEditCompany(id, button);
@@ -315,6 +399,7 @@ export default {
     });
 
     document.addEventListener('crm:data-refreshed', renderCompanyUi);
+    document.addEventListener('crm:association-created', refreshCompanyLinksIfOpen);
     renderCompanyUi();
   }
 };

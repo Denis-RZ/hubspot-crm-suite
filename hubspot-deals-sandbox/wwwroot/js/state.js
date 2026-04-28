@@ -10,6 +10,7 @@ export const state = {
   contacts:      [],
   companies:     [],
   companyIndustryOptions: [],
+  contactLifecycleOptions: [],
   importPreview: null,
 
   // Which deals are currently shown in the table (may differ from state.deals when a search is active).

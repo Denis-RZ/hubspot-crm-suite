@@ -1,6 +1,9 @@
 import { escapeHtml } from './ui.js';
 import { INDUSTRY_OPTIONS } from './csv.js';
-import { LIFECYCLE_STAGES } from './forms.js';
+const LIFECYCLE_STAGES_FALLBACK = [
+  'subscriber', 'lead', 'marketingqualifiedlead',
+  'salesqualifiedlead', 'opportunity', 'customer',
+];
 import { paginate, renderPaginator } from './pagination.js';
 
 const STAGE_WON = new Set(['closedwon', 'customer', 'closed won']);
@@ -149,16 +152,20 @@ function fillFilterSelect(id, items, getValue, getLabel) {
 }
 
 export function renderDealTable(records, searchActive, options = {}) {
-  const { linksEnabled = true, page = 1, pageSize = 10 } = options;
+  const { linksEnabled = true, linkedObjectTypes = ['contacts', 'companies'], page = 1, pageSize = 10 } = options;
   const body = document.getElementById('deal-table-body');
   const countEl = document.getElementById('deal-count');
   if (!body || !countEl) return;
+  const canExpand = linksEnabled && linkedObjectTypes.length > 0;
+  const expandTitle = linkedObjectTypes.length === 1
+    ? `View linked ${linkedObjectTypes[0]}`
+    : 'View linked contacts and companies';
 
   countEl.className = searchActive ? 'pill filter-active' : 'pill';
   countEl.textContent = searchActive ? `${records.length} filtered` : `${records.length} deals`;
 
   if (records.length === 0) {
-    body.innerHTML = `<tr><td colspan="5">
+    body.innerHTML = `<tr><td colspan="6">
       <div class="empty-state">
         <div class="icon">DL</div>
         <p>${searchActive
@@ -176,6 +183,7 @@ export function renderDealTable(records, searchActive, options = {}) {
     const row = document.createElement('tr');
     row.dataset.id = deal.id;
     row.innerHTML = `
+      <td class="col-expand">${canExpand ? `<button class="row-expand-toggle" data-action="view-deal-links" data-id="${escapeHtml(deal.id)}" title="${expandTitle}">▶</button>` : ''}</td>
       <td><strong>${escapeHtml(deal.properties.dealname || '-')}</strong></td>
       <td>${stagePill(deal.properties.dealstage || '')}</td>
       <td>${deal.properties.amount ? escapeHtml(deal.properties.amount) : '<span style="color:var(--muted)">-</span>'}</td>
@@ -206,12 +214,13 @@ export function renderContactTable(records, options = {}) {
   const body = document.getElementById('contact-table-body');
   const countEl = document.getElementById('contact-count');
   if (!body || !countEl) return;
+  const canExpand = linksEnabled;
 
   countEl.className = countClass;
   countEl.textContent = countLabel;
 
   if (records.length === 0) {
-    body.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">
       <div class="icon">CT</div>
       <p>${emptyMessage}</p>
     </div></td></tr>`;
@@ -228,6 +237,7 @@ export function renderContactTable(records, options = {}) {
     const row = document.createElement('tr');
     row.dataset.id = contact.id;
     row.innerHTML = `
+      <td class="col-expand">${canExpand ? `<button class="row-expand-toggle" data-action="view-contact-links" data-id="${escapeHtml(contact.id)}" title="View linked deals">▶</button>` : ''}</td>
       <td><strong>${escapeHtml(name)}</strong></td>
       <td>${escapeHtml(contact.properties.email || '-')}</td>
       <td>${escapeHtml(contact.properties.phone || '-')}</td>
@@ -258,12 +268,13 @@ export function renderCompanyTable(records, options = {}) {
   const body = document.getElementById('company-table-body');
   const countEl = document.getElementById('company-count');
   if (!body || !countEl) return;
+  const canExpand = linksEnabled;
 
   countEl.className = countClass;
   countEl.textContent = countLabel;
 
   if (records.length === 0) {
-    body.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">
       <div class="icon">CO</div>
       <p>${emptyMessage}</p>
     </div></td></tr>`;
@@ -276,6 +287,7 @@ export function renderCompanyTable(records, options = {}) {
     const row = document.createElement('tr');
     row.dataset.id = company.id;
     row.innerHTML = `
+      <td class="col-expand">${canExpand ? `<button class="row-expand-toggle" data-action="view-company-links" data-id="${escapeHtml(company.id)}" title="View linked deals">▶</button>` : ''}</td>
       <td><strong>${escapeHtml(company.properties.name || '-')}</strong></td>
       <td>${escapeHtml(company.properties.domain || '-')}</td>
       <td>${escapeHtml(company.properties.city || '-')}</td>
@@ -357,20 +369,107 @@ export function renderAssociations(objectType, records) {
   });
 }
 
+function linksTable(rows, emptyText, headers = []) {
+  if (!rows.length) return `<p class="empty-note">${emptyText}</p>`;
+  const thead = headers.length
+    ? `<thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`
+    : '';
+  return `<table class="links-mini-table">${thead}<tbody>${rows.map(cells =>
+    `<tr>${cells.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`
+  ).join('')}</tbody></table>`;
+}
+
+function contactLinkTitle(contact) {
+  const props = contact.properties ?? {};
+  return [props.firstname, props.lastname].filter(Boolean).join(' ')
+    || props.email
+    || `Contact ${contact.id}`;
+}
+
+function companyLinkTitle(company) {
+  const props = company.properties ?? {};
+  return props.name || props.domain || `Company ${company.id}`;
+}
+
+function dealLinkTitle(deal) {
+  return deal.properties?.dealname || `Deal ${deal.id}`;
+}
+
+export function renderDealLinksRow(parentRow, contacts, companies, enabledTypes = ['contacts', 'companies']) {
+  const contactRows = contacts.map(c => [
+    contactLinkTitle(c),
+    c._missing ? `ID ${c.id}` : c.properties?.email || c.id,
+  ]);
+  const companyRows = companies.map(c => [
+    companyLinkTitle(c),
+    c._missing ? `ID ${c.id}` : c.properties?.domain || c.id,
+  ]);
+  const sections = [];
+
+  if (enabledTypes.includes('contacts')) {
+    sections.push(`
+      <div>
+        <p class="edit-panel-label">Linked contacts (${contacts.length})</p>
+        ${linksTable(contactRows, 'None linked', ['Name', 'Email'])}
+      </div>`);
+  }
+
+  if (enabledTypes.includes('companies')) {
+    sections.push(`
+      <div>
+        <p class="edit-panel-label">Linked companies (${companies.length})</p>
+        ${linksTable(companyRows, 'None linked', ['Name', 'Domain'])}
+      </div>`);
+  }
+
+  return insertPanelRow(parentRow, 6, `
+    <div class="links-expand-grid${sections.length === 1 ? ' single' : ''}">
+      ${sections.join('')}
+    </div>`, { kind: 'links' });
+}
+
+export function renderContactLinksRow(parentRow, deals) {
+  const rows = deals.map(d => [
+    dealLinkTitle(d),
+    d._missing ? 'ID only' : d.properties?.dealstage || '-',
+    d.properties?.amount || '-',
+  ]);
+  return insertPanelRow(parentRow, 6, `
+    <div>
+      <p class="edit-panel-label">Linked deals (${deals.length})</p>
+      ${linksTable(rows, 'None linked', ['Deal', 'Stage', 'Amount'])}
+    </div>`, { kind: 'links' });
+}
+
+export function renderCompanyLinksRow(parentRow, deals) {
+  const rows = deals.map(d => [
+    dealLinkTitle(d),
+    d._missing ? 'ID only' : d.properties?.dealstage || '-',
+    d.properties?.amount || '-',
+  ]);
+  return insertPanelRow(parentRow, 6, `
+    <div>
+      <p class="edit-panel-label">Linked deals (${deals.length})</p>
+      ${linksTable(rows, 'None linked', ['Deal', 'Stage', 'Amount'])}
+    </div>`, { kind: 'links' });
+}
+
 export function renderAssociationPlaceholder() {
   const container = document.getElementById('association-output');
   if (!container) return;
 
   container.innerHTML =
-    '<div class="empty-note">Select a deal above and click a button to see its links.</div>';
+    '<div class="empty-note">Select a deal to see its links.</div>';
 }
 
-export function insertPanelRow(parentRow, colSpan, html) {
-  parentRow.classList.add('row-editing-parent');
+export function insertPanelRow(parentRow, colSpan, html, options = {}) {
+  const kind = options.kind || 'edit';
+  parentRow.classList.add(kind === 'links' ? 'row-links-parent' : 'row-editing-parent');
 
   const panelRow = document.createElement('tr');
-  panelRow.className = 'row-edit-panel';
-  panelRow.dataset.editFor = parentRow.dataset.id;
+  panelRow.className = kind === 'links' ? 'row-edit-panel row-links-panel' : 'row-edit-panel';
+  panelRow.dataset.panelKind = kind;
+  if (kind === 'edit') panelRow.dataset.editFor = parentRow.dataset.id;
   panelRow.innerHTML = `<td colspan="${colSpan}"><div class="edit-panel">${html}</div></td>`;
 
   parentRow.after(panelRow);
@@ -391,7 +490,7 @@ export function renderDealRowEdit(parentRow, deal, state) {
     ? new Date(deal.properties.closedate).toISOString().slice(0, 10)
     : '';
 
-  const panelRow = insertPanelRow(parentRow, 5, `
+  const panelRow = insertPanelRow(parentRow, 6, `
     <p class="edit-panel-label">Edit deal</p>
     <div class="form-grid cols-2">
       <div>
@@ -433,12 +532,15 @@ export function renderDealRowEdit(parentRow, deal, state) {
   panelRow.querySelector('[data-field="dealname"]').focus();
 }
 
-export function renderContactRowEdit(parentRow, contact) {
-  const lifecycleOptions = LIFECYCLE_STAGES.map(stage =>
-    `<option value="${stage}" ${stage === contact.properties.lifecyclestage ? 'selected' : ''}>${stage}</option>`
-  ).join('');
+export function renderContactRowEdit(parentRow, contact, lifecycleOptions = []) {
+  const stages = lifecycleOptions.length ? lifecycleOptions : LIFECYCLE_STAGES_FALLBACK.map(v => ({ value: v, label: v }));
+  const lifecycleHtml = stages.map(o => {
+    const value = o.value ?? o;
+    const label = o.label ?? o;
+    return `<option value="${escapeHtml(value)}" ${value === contact.properties.lifecyclestage ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+  }).join('');
 
-  const panelRow = insertPanelRow(parentRow, 5, `
+  const panelRow = insertPanelRow(parentRow, 6, `
     <p class="edit-panel-label">Edit contact</p>
     <div class="form-grid cols-2">
       <div>
@@ -459,7 +561,7 @@ export function renderContactRowEdit(parentRow, contact) {
       </div>
       <div>
         <label>Lifecycle stage</label>
-        <select data-field="lifecyclestage"><option value="">Not set</option>${lifecycleOptions}</select>
+        <select data-field="lifecyclestage"><option value="">Not set</option>${lifecycleHtml}</select>
       </div>
     </div>
     <div class="edit-panel-actions">
@@ -475,7 +577,7 @@ export function renderCompanyRowEdit(parentRow, company) {
     `<option value="${escapeHtml(option.value)}" ${option.value === company.properties.industry ? 'selected' : ''}>${escapeHtml(option.label)}</option>`
   ).join('');
 
-  const panelRow = insertPanelRow(parentRow, 5, `
+  const panelRow = insertPanelRow(parentRow, 6, `
     <p class="edit-panel-label">Edit company</p>
     <div class="form-grid cols-2">
       <div>
