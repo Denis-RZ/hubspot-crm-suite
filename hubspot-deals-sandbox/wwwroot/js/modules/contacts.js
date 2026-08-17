@@ -120,7 +120,7 @@ async function deleteContact(contactId, button) {
     || [contact?.properties?.firstname, contact?.properties?.lastname].filter(Boolean).join(' ')
     || contactId;
 
-  if (!confirm(`Delete contact "${label}"? This writes to the live HubSpot sandbox.`)) {
+  if (!confirm(`Delete contact "${label}"? This cannot be undone.`)) {
     return;
   }
 
@@ -299,7 +299,7 @@ export default {
   renderNav() {
     return `
       <button class="nav-button" data-panel="contacts">
-        Contacts <span class="nav-badge" data-module-badge="contacts">...</span>
+        Contacts<span class="zh">聯絡人</span> <span class="nav-badge" data-module-badge="contacts">...</span>
       </button>`;
   },
   renderPanel() {
@@ -307,62 +307,62 @@ export default {
       <section id="panel-contacts" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Contacts</h2>
-            <p>Contacts are people. Create the person before linking a deal to them.</p>
+            <h2>Contacts<span class="zh">聯絡人</span></h2>
+            <p>Contacts are people. Create the person before linking a deal to them.<span class="zh">聯絡人是「人」。請先建立這個人，再將交易與其連結。</span></p>
           </div>
-          <div class="sub-badge">Create person before linking</div>
+          <div class="sub-badge">Create person before linking<span class="zh">先建立人員再連結</span></div>
         </div>
 
         <div class="grid-2">
           <article class="section-card">
-            <h3 id="contact-form-title">Create Contact</h3>
-            <p>Email is required - HubSpot uses it as the unique key for contacts.</p>
+            <h3 id="contact-form-title">Create Contact<span class="zh">建立聯絡人</span></h3>
+            <p>Email is required - it is used as the unique key for contacts.<span class="zh">Email 為必填，作為聯絡人的唯一識別鍵。</span></p>
             <div class="form-grid cols-2">
               <div>
-                <label for="contact-firstname">First name</label>
+                <label for="contact-firstname">First name<span class="zh">名字</span></label>
                 <input id="contact-firstname" type="text" placeholder="Alice">
               </div>
               <div>
-                <label for="contact-lastname">Last name</label>
+                <label for="contact-lastname">Last name<span class="zh">姓氏</span></label>
                 <input id="contact-lastname" type="text" placeholder="Chen">
               </div>
               <div>
-                <label for="contact-email">Email <span class="label-hint">required</span></label>
+                <label for="contact-email">Email<span class="zh">電子郵件</span> <span class="label-hint">required</span></label>
                 <input id="contact-email" type="email" placeholder="alice@example.com">
                 <div class="field-error" id="err-contact-email">Email is required.</div>
               </div>
               <div>
-                <label for="contact-phone">Phone</label>
+                <label for="contact-phone">Phone<span class="zh">電話</span></label>
                 <input id="contact-phone" type="text" placeholder="+886-900-000-000">
               </div>
               <div>
-                <label for="contact-lifecycle">Lifecycle stage</label>
+                <label for="contact-lifecycle">Lifecycle stage<span class="zh">生命週期階段</span></label>
                 <select id="contact-lifecycle"></select>
               </div>
             </div>
             <div class="actions">
-              <button id="btn-save-contact" class="button button-primary">Create contact</button>
-              <button id="btn-cancel-contact-edit" class="button button-secondary hidden">Cancel edit</button>
+              <button id="btn-save-contact" class="button button-primary">Create contact<span class="zh">建立聯絡人</span></button>
+              <button id="btn-cancel-contact-edit" class="button button-secondary hidden">Cancel edit<span class="zh">取消編輯</span></button>
             </div>
           </article>
 
           <article class="table-card">
             <div class="table-toolbar">
               <div>
-                <h3>Contact Records</h3>
-                <p>Use "Use in Links" to pre-select for association.</p>
+                <h3>Contact Records<span class="zh">聯絡人紀錄</span></h3>
+                <p>Use "Use in Links" to pre-select for association.<span class="zh">使用「Use in Links」預先選取以便建立關聯。</span></p>
               </div>
               <span id="contact-count" class="pill">0 contacts</span>
             </div>
             <div class="table-filters">
               <input id="filter-contact-name" class="filter-input" type="search" placeholder="Search by name or email...">
               <select id="filter-contact-lifecycle" class="filter-select"><option value="">All stages</option></select>
-              <button id="btn-clear-contact-filters" class="filter-clear">Clear</button>
+              <button id="btn-clear-contact-filters" class="filter-clear">Clear<span class="zh">清除</span></button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th class="col-expand"></th><th>Name</th><th>Email</th><th>Phone</th><th>Lifecycle</th><th>Actions</th></tr>
+                  <tr><th class="col-expand"></th><th>Name<span class="zh">姓名</span></th><th>Email<span class="zh">電子郵件</span></th><th>Phone<span class="zh">電話</span></th><th>Lifecycle<span class="zh">生命週期</span></th><th>Actions<span class="zh">操作</span></th></tr>
                 </thead>
                 <tbody id="contact-table-body"></tbody>
               </table>

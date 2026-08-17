@@ -39,7 +39,7 @@ public sealed class HubSpotDealRecord
     public HubSpotDealProperties Properties { get; init; } = new();
 }
 
-public sealed class HubSpotDealProperties
+public sealed record HubSpotDealProperties
 {
     [JsonPropertyName("dealname")]
     public string? DealName { get; init; }

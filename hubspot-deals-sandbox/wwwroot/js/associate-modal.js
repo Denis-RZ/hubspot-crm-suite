@@ -121,9 +121,9 @@ async function doAssociate() {
     resultEl().style.display = '';
     setResult({
       message: `Linked deal "${dealName}" to ${singular} "${objectName}".`,
-      impact: 'HubSpot now has an association between the two existing records. No fields were copied and no duplicate record was created.',
+      impact: 'The store now has an association between the two existing records. No fields were copied and no duplicate record was created.',
       request: { dealId, objectType, objectId },
-      hubspot: res,
+      result: res,
     });
     toast(`Linked deal to ${singular}`, 'success');
     document.dispatchEvent(new CustomEvent('crm:association-created', {

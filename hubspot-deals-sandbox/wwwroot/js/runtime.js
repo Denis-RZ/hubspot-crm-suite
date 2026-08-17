@@ -20,6 +20,10 @@ export async function refreshAll(button) {
     state.companies = data.companies || [];
     state.companyIndustryOptions = data.companyIndustryOptions || [];
     state.contactLifecycleOptions = data.contactLifecycleOptions || [];
+    state.defects = data.defects || [];
+    state.defectSeverityOptions = data.defectSeverityOptions || [];
+    state.defectStatusOptions = data.defectStatusOptions || [];
+    state.defectSourceOptions = data.defectSourceOptions || [];
     state.visibleDeals = [...state.deals];
     state.searchActive = false;
 

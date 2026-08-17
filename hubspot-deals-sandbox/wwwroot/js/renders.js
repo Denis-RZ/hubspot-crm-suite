@@ -605,7 +605,7 @@ export function renderCompanyRowEdit(parentRow, company) {
   panelRow.querySelector('[data-field="name"]').focus();
 }
 
-export function renderImportEmptyState(message = 'Upload a CSV file and click Preview to validate rows before writing to HubSpot.') {
+export function renderImportEmptyState(message = 'Upload a CSV file and click Preview to validate rows before saving them.') {
   const countEl = document.getElementById('import-preview-count');
   const body = document.getElementById('import-preview-body');
   if (!countEl || !body) return;

@@ -12,7 +12,7 @@
 <body>
 <div id="loading-overlay">
   <div class="spinner-lg"></div>
-  <p>Connecting to HubSpot...</p>
+  <p>Loading CRM data...</p>
 </div>
 
 <div id="toast-container"></div>
@@ -23,11 +23,12 @@
       <span class="brand-mark" aria-hidden="true">HS</span>
       <span class="brand-title">CRM Sandbox</span>
     </div>
+    <button type="button" id="zh-toggle" title="切換中文">中文</button>
   </header>
 
   <section class="layout">
     <aside class="sidebar">
-      <div class="sidebar-title">Workspace</div>
+      <div class="sidebar-title">Workspace<span class="zh">工作區</span></div>
       <nav id="module-nav"></nav>
     </aside>
 
@@ -38,14 +39,14 @@
         <div class="panel-header" style="margin-bottom: 0;">
           <div>
             <h2 style="font-size: 22px; margin-bottom: 4px;">
-              API Result
+              API Result<span class="zh">API 回應結果</span>
               <span id="result-status" class="result-status" style="display:none"></span>
             </h2>
-            <p>Raw JSON response from the last API call.</p>
+            <p>Raw JSON response from the last API call.<span class="zh">最後一次 API 呼叫的原始 JSON 回應。</span></p>
           </div>
           <div class="actions" style="margin-top: 0;">
-            <button id="btn-refresh-all" class="button button-secondary">Refresh everything</button>
-            <button id="btn-clear-result" class="button button-secondary">Clear</button>
+            <button id="btn-refresh-all" class="button button-secondary">Refresh everything<span class="zh">重新整理全部</span></button>
+            <button id="btn-clear-result" class="button button-secondary">Clear<span class="zh">清除</span></button>
           </div>
         </div>
         <pre id="result">// Results will appear here...</pre>
@@ -57,29 +58,29 @@
 <div id="associate-modal" class="modal-backdrop" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="associate-modal-title">
     <div class="modal-header">
-      <h3 id="associate-modal-title">Associate</h3>
+      <h3 id="associate-modal-title">Associate<span class="zh">建立關聯</span></h3>
       <button class="modal-close" id="associate-modal-close" aria-label="Close">×</button>
     </div>
     <div class="modal-body">
       <div id="assoc-type-selector" style="display:none">
         <div class="assoc-tabs">
           <label class="assoc-tab">
-            <input type="radio" name="assoc-type" value="contacts"> Contact
+            <input type="radio" name="assoc-type" value="contacts"> Contact<span class="zh">聯絡人</span>
           </label>
           <label class="assoc-tab">
-            <input type="radio" name="assoc-type" value="companies"> Company
+            <input type="radio" name="assoc-type" value="companies"> Company<span class="zh">公司</span>
           </label>
         </div>
       </div>
       <div>
-        <label for="associate-record-select" id="associate-record-label" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Record</label>
+        <label for="associate-record-select" id="associate-record-label" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Record<span class="zh">記錄</span></label>
         <select id="associate-record-select" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:14px"></select>
       </div>
       <div id="associate-modal-result" style="display:none;margin-top:10px;font-size:13px"></div>
     </div>
     <div class="modal-footer">
-      <button id="btn-associate-confirm" class="button button-primary">Associate</button>
-      <button id="btn-associate-cancel" class="button button-secondary">Cancel</button>
+      <button id="btn-associate-confirm" class="button button-primary">Associate<span class="zh">建立關聯</span></button>
+      <button id="btn-associate-cancel" class="button button-secondary">Cancel<span class="zh">取消</span></button>
     </div>
   </div>
 </div>

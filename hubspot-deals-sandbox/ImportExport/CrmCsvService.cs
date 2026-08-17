@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Net.Mail;
 using System.Text;
-using HubSpotDealsSandbox.HubSpot;
+using HubSpotDealsSandbox.Data;
 using HubSpotDealsSandbox.HubSpot.Models;
 
 namespace HubSpotDealsSandbox.ImportExport;
@@ -72,7 +72,7 @@ public sealed class CrmCsvService
     // 匯出目前 HubSpot 資料，支援後續「匯出 -> 編輯 -> 預覽 -> 套用」的 round-trip 流程。
     public async Task<CsvFilePayload> ExportAsync(
         string objectType,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken = default)
     {
         var definition = GetDefinition(objectType);
@@ -100,7 +100,7 @@ public sealed class CrmCsvService
         string objectType,
         string fileName,
         Stream csvStream,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken = default)
     {
         var analysis = await AnalyzeAsync(objectType, fileName, csvStream, client, cancellationToken);
@@ -112,7 +112,7 @@ public sealed class CrmCsvService
         string objectType,
         string fileName,
         Stream csvStream,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken = default)
     {
         var analysis = await AnalyzeAsync(objectType, fileName, csvStream, client, cancellationToken);
@@ -158,7 +158,7 @@ public sealed class CrmCsvService
                     Message = row.Action == "Create" ? "Record created." : "Record updated."
                 });
             }
-            catch (HubSpotApiException ex)
+            catch (Exception ex)
             {
                 failedRows++;
                 results.Add(new ImportApplyRowResult
@@ -188,7 +188,7 @@ public sealed class CrmCsvService
         string objectType,
         string fileName,
         Stream csvStream,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken)
     {
         var definition = GetDefinition(objectType);
@@ -290,7 +290,7 @@ public sealed class CrmCsvService
     }
 
     private async Task<List<Dictionary<string, string?>>> ExportDealsAsync(
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken)
     {
         var deals = await client.ListDealsAsync(limit: 500, cancellationToken);
@@ -306,7 +306,7 @@ public sealed class CrmCsvService
     }
 
     private async Task<List<Dictionary<string, string?>>> ExportContactsAsync(
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken)
     {
         var contacts = await client.ListContactsAsync(limit: 500, cancellationToken);
@@ -322,7 +322,7 @@ public sealed class CrmCsvService
     }
 
     private async Task<List<Dictionary<string, string?>>> ExportCompaniesAsync(
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken)
     {
         var companies = await client.ListCompaniesAsync(limit: 500, cancellationToken);
@@ -344,7 +344,7 @@ public sealed class CrmCsvService
     private async Task<string> ApplyRowAsync(
         string objectType,
         ImportRowAnalysis row,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken)
     {
         // 依物件類型決定要呼叫哪個 HubSpot API，並回傳最後的 record id。
@@ -677,7 +677,7 @@ public sealed class CrmCsvService
 
     private async Task<ImportLookupCache> BuildLookupCacheAsync(
         string objectType,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken)
     {
         // 先抓 HubSpot 的 lookup 資料，讓 preview 就能驗證 pipeline/stage 與 industry，

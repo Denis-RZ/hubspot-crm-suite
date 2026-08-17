@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using HubSpotDealsSandbox;
-using HubSpotDealsSandbox.HubSpot;
+using HubSpotDealsSandbox.Data;
 using HubSpotDealsSandbox.HubSpot.Models;
 using HubSpotDealsSandbox.ImportExport;
 using HubSpotDealsSandbox.Modules;
@@ -28,16 +28,7 @@ async Task<int> RunAsync(string[] args)
         return 0;
     }
 
-    var accessToken = GetHubSpotAccessToken();
-    if (string.IsNullOrWhiteSpace(accessToken))
-    {
-        Console.Error.WriteLine(
-            "Set HUBSPOT_ACCESS_TOKEN or HubSpot:AccessToken in appsettings.json before running this sandbox.");
-        return 1;
-    }
-
-    using var httpClient = new HttpClient();
-    var client = new HubSpotDealsClient(httpClient, accessToken);
+    var client = new LocalCrmStore(GetCrmStorePath(Directory.GetCurrentDirectory()));
 
     var command = args.Length == 0 ? "web" : args[0].ToLowerInvariant();
 
@@ -62,7 +53,7 @@ async Task<int> RunAsync(string[] args)
                 break;
 
             case "web":
-                await RunWebAsync(accessToken);
+                await RunWebAsync();
                 return 0;
 
             case "search":
@@ -85,18 +76,6 @@ async Task<int> RunAsync(string[] args)
 
         return 0;
     }
-    catch (HubSpotApiException ex)
-    {
-        Console.Error.WriteLine(
-            $"HubSpot API error ({ex.StatusCode}): {ex.Message}");
-
-        if (!string.IsNullOrWhiteSpace(ex.ResponseBody))
-        {
-            Console.Error.WriteLine(ex.ResponseBody);
-        }
-
-        return 1;
-    }
     catch (Exception ex)
     {
         Console.Error.WriteLine(ex.Message);
@@ -104,7 +83,7 @@ async Task<int> RunAsync(string[] args)
     }
 }
 
-async Task ListDealsAsync(HubSpotDealsClient client, string[] args)
+async Task ListDealsAsync(LocalCrmStore client, string[] args)
 {
     const int defaultLimit = 5;
     var limit = defaultLimit;
@@ -132,7 +111,7 @@ async Task ListDealsAsync(HubSpotDealsClient client, string[] args)
     }
 }
 
-async Task GetDealAsync(HubSpotDealsClient client, string[] args)
+async Task GetDealAsync(LocalCrmStore client, string[] args)
 {
     if (args.Length < 2)
     {
@@ -143,7 +122,7 @@ async Task GetDealAsync(HubSpotDealsClient client, string[] args)
     Console.WriteLine(JsonSerializer.Serialize(deal, jsonOptions));
 }
 
-async Task CreateDealFromFileAsync(HubSpotDealsClient client, string[] args)
+async Task CreateDealFromFileAsync(LocalCrmStore client, string[] args)
 {
     if (args.Length < 2)
     {
@@ -157,7 +136,7 @@ async Task CreateDealFromFileAsync(HubSpotDealsClient client, string[] args)
     Console.WriteLine(JsonSerializer.Serialize(deal, jsonOptions));
 }
 
-async Task UpdateDealFromFileAsync(HubSpotDealsClient client, string[] args)
+async Task UpdateDealFromFileAsync(LocalCrmStore client, string[] args)
 {
     if (args.Length < 3)
     {
@@ -179,7 +158,7 @@ async Task UpdateDealFromFileAsync(HubSpotDealsClient client, string[] args)
 //   dotnet run -- search dealstage EQ appointmentscheduled
 //   dotnet run -- search amount GTE 5000
 //   dotnet run -- search dealname CONTAINS_TOKEN Acme
-async Task SearchDealsAsync(HubSpotDealsClient client, string[] args)
+async Task SearchDealsAsync(LocalCrmStore client, string[] args)
 {
     if (args.Length < 4)
     {
@@ -233,7 +212,7 @@ async Task SearchDealsAsync(HubSpotDealsClient client, string[] args)
 //
 // Example:
 //   dotnet run -- associate 123456789 contacts 987654321
-async Task AssociateDealAsync(HubSpotDealsClient client, string[] args)
+async Task AssociateDealAsync(LocalCrmStore client, string[] args)
 {
     if (args.Length < 4)
     {
@@ -252,7 +231,7 @@ async Task AssociateDealAsync(HubSpotDealsClient client, string[] args)
 //
 // Example:
 //   dotnet run -- associations 123456789 contacts
-async Task GetAssociationsAsync(HubSpotDealsClient client, string[] args)
+async Task GetAssociationsAsync(LocalCrmStore client, string[] args)
 {
     if (args.Length < 3)
     {
@@ -311,33 +290,8 @@ string TrimToWidth(string? value, int width)
     return value.Length <= width ? value : $"{value[..(width - 3)]}...";
 }
 
-string? GetHubSpotAccessToken()
-{
-    var envToken = Environment.GetEnvironmentVariable("HUBSPOT_ACCESS_TOKEN");
-    if (!string.IsNullOrWhiteSpace(envToken))
-    {
-        return envToken;
-    }
-
-    foreach (var basePath in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory }.Distinct())
-    {
-        var settingsPath = Path.Combine(basePath, "appsettings.json");
-        if (!File.Exists(settingsPath))
-        {
-            continue;
-        }
-
-        using var document = JsonDocument.Parse(File.ReadAllText(settingsPath));
-        if (document.RootElement.TryGetProperty("HubSpot", out var hubSpot) &&
-            hubSpot.TryGetProperty("AccessToken", out var token) &&
-            !string.IsNullOrWhiteSpace(token.GetString()))
-        {
-            return token.GetString();
-        }
-    }
-
-    return null;
-}
+string GetCrmStorePath(string contentRootPath) =>
+    Path.Combine(contentRootPath, "App_Data", "crm-store.json");
 
 string GetRuntimeSettingsPath(string contentRootPath) =>
     Path.Combine(contentRootPath, "App_Data", "runtime-settings.json");
@@ -391,7 +345,7 @@ void PrintUsage()
 {
     Console.WriteLine(
         """
-        HubSpot Deals sandbox
+        CRM sandbox (self-contained, file-backed - no external account needed)
 
         Commands:
           dotnet run -- web
@@ -403,8 +357,7 @@ void PrintUsage()
           dotnet run -- associate <dealId> <objectType> <objectId>
           dotnet run -- associations <dealId> <objectType>
 
-        Required environment variable:
-          HUBSPOT_ACCESS_TOKEN
+        Data is stored in App_Data/crm-store.json - nothing to configure.
 
         Examples:
           dotnet run -- list 10
@@ -420,7 +373,7 @@ void PrintUsage()
         """);
 }
 
-async Task RunWebAsync(string accessToken)
+async Task RunWebAsync()
 {
     var builder = WebApplication.CreateBuilder(Array.Empty<string>());
     var isHostedByIis =
@@ -446,11 +399,7 @@ async Task RunWebAsync(string accessToken)
         Assembly.GetExecutingAssembly(),
         settingsSourceName);
 
-    builder.Services.AddHttpClient("HubSpot");
-    builder.Services.AddSingleton(sp =>
-        new HubSpotDealsClient(
-            sp.GetRequiredService<IHttpClientFactory>().CreateClient("HubSpot"),
-            accessToken));
+    builder.Services.AddSingleton(new LocalCrmStore(GetCrmStorePath(builder.Environment.ContentRootPath)));
     builder.Services.AddSingleton(new ModuleAvailability(enabledModules));
     builder.Services.AddSingleton<CrmCsvService>();
     builder.Services.AddSingleton<PluginRegistry>();
@@ -571,13 +520,30 @@ async Task RunWebAsync(string accessToken)
             using var scope = scopeFactory.CreateScope();
 
             var payload = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            var moduleErrors = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var module in enabledModules)
             {
-                var fragment = await module.BuildBootstrapAsync(scope.ServiceProvider, cancellationToken);
-                foreach (var item in fragment)
+                // Each module's bootstrap fragment is isolated: a failure in one
+                // integration (e.g. HubSpot unreachable) must not take down
+                // modules that do not depend on it (e.g. the local Defects store).
+                try
                 {
-                    payload[item.Key] = item.Value;
+                    var fragment = await module.BuildBootstrapAsync(scope.ServiceProvider, cancellationToken);
+                    foreach (var item in fragment)
+                    {
+                        payload[item.Key] = item.Value;
+                    }
                 }
+                catch (Exception ex)
+                {
+                    moduleErrors[module.Id] = ex.Message;
+                }
+            }
+
+            if (moduleErrors.Count > 0)
+            {
+                payload["moduleErrors"] = moduleErrors;
             }
 
             return Results.Ok(payload);
@@ -587,7 +553,7 @@ async Task RunWebAsync(string accessToken)
         string objectType,
         ModuleAvailability moduleAvailability,
         CrmCsvService csvService,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         CancellationToken cancellationToken) =>
         await ApiEndpointHelpers.ExecuteAsync(async () =>
         {
@@ -622,7 +588,7 @@ async Task RunWebAsync(string accessToken)
         string objectType,
         ModuleAvailability moduleAvailability,
         CrmCsvService csvService,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         HttpRequest request,
         CancellationToken cancellationToken) =>
         await ApiEndpointHelpers.ExecuteAsync(async () =>
@@ -649,7 +615,7 @@ async Task RunWebAsync(string accessToken)
         string objectType,
         ModuleAvailability moduleAvailability,
         CrmCsvService csvService,
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         HttpRequest request,
         CancellationToken cancellationToken) =>
         await ApiEndpointHelpers.ExecuteAsync(async () =>

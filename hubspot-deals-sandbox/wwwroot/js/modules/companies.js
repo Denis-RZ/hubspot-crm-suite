@@ -121,7 +121,7 @@ async function deleteCompany(companyId, button) {
   const company = state.companies.find(record => record.id === companyId);
   const label = company?.properties?.name || companyId;
 
-  if (!confirm(`Delete company "${label}"? This writes to the live HubSpot sandbox.`)) {
+  if (!confirm(`Delete company "${label}"? This cannot be undone.`)) {
     return;
   }
 
@@ -290,7 +290,7 @@ export default {
   renderNav() {
     return `
       <button class="nav-button" data-panel="companies">
-        Companies <span class="nav-badge" data-module-badge="companies">...</span>
+        Companies<span class="zh">公司</span> <span class="nav-badge" data-module-badge="companies">...</span>
       </button>`;
   },
   renderPanel() {
@@ -298,60 +298,60 @@ export default {
       <section id="panel-companies" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Companies</h2>
+            <h2>Companies<span class="zh">公司</span></h2>
             <p>Companies are organizations. Deals are typically linked to a company
-               before they are meaningful in a CRM.</p>
+               before they are meaningful in a CRM.<span class="zh">公司代表組織。在 CRM 中，交易通常需要先連結到公司才有意義。</span></p>
           </div>
-          <div class="sub-badge">Create organization first</div>
+          <div class="sub-badge">Create organization first<span class="zh">先建立組織</span></div>
         </div>
 
         <div class="grid-2">
           <article class="section-card">
-            <h3 id="company-form-title">Create Company</h3>
-            <p>Company name is the anchor. Domain, city, and industry help when browsing records.</p>
+            <h3 id="company-form-title">Create Company<span class="zh">建立公司</span></h3>
+            <p>Company name is the anchor. Domain, city, and industry help when browsing records.<span class="zh">公司名稱是核心欄位。網域、城市與產業則有助於瀏覽資料。</span></p>
             <div class="form-grid cols-2">
               <div>
-                <label for="company-name">Company name <span class="label-hint">required</span></label>
+                <label for="company-name">Company name<span class="zh">公司名稱</span> <span class="label-hint">required</span></label>
                 <input id="company-name" type="text" placeholder="Northwind Data Systems">
                 <div class="field-error" id="err-company-name">Company name is required.</div>
               </div>
               <div>
-                <label for="company-domain">Domain</label>
+                <label for="company-domain">Domain<span class="zh">網域</span></label>
                 <input id="company-domain" type="text" placeholder="northwind.example">
               </div>
               <div>
-                <label for="company-city">City</label>
+                <label for="company-city">City<span class="zh">城市</span></label>
                 <input id="company-city" type="text" placeholder="Taoyuan">
               </div>
               <div>
-                <label for="company-industry">Industry</label>
+                <label for="company-industry">Industry<span class="zh">產業</span></label>
                 <select id="company-industry"></select>
-                <div class="helper">This comes from HubSpot allowed options, so the value is always valid.</div>
+                <div class="helper">This comes from a fixed set of allowed options, so the value is always valid.<span class="zh">選項來自固定清單，因此數值永遠有效。</span></div>
               </div>
             </div>
             <div class="actions">
-              <button id="btn-save-company" class="button button-primary">Create company</button>
-              <button id="btn-cancel-company-edit" class="button button-secondary hidden">Cancel edit</button>
+              <button id="btn-save-company" class="button button-primary">Create company<span class="zh">建立公司</span></button>
+              <button id="btn-cancel-company-edit" class="button button-secondary hidden">Cancel edit<span class="zh">取消編輯</span></button>
             </div>
           </article>
 
           <article class="table-card">
             <div class="table-toolbar">
               <div>
-                <h3>Company Records</h3>
-                <p>Use "Use in Links" to pre-select for association.</p>
+                <h3>Company Records<span class="zh">公司紀錄</span></h3>
+                <p>Use "Use in Links" to pre-select for association.<span class="zh">使用「Use in Links」預先選取以便建立關聯。</span></p>
               </div>
               <span id="company-count" class="pill">0 companies</span>
             </div>
             <div class="table-filters">
               <input id="filter-company-name" class="filter-input" type="search" placeholder="Search by name or domain...">
               <select id="filter-company-industry" class="filter-select"><option value="">All industries</option></select>
-              <button id="btn-clear-company-filters" class="filter-clear">Clear</button>
+              <button id="btn-clear-company-filters" class="filter-clear">Clear<span class="zh">清除</span></button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th class="col-expand"></th><th>Name</th><th>Domain</th><th>City</th><th>Industry</th><th>Actions</th></tr>
+                  <tr><th class="col-expand"></th><th>Name<span class="zh">名稱</span></th><th>Domain<span class="zh">網域</span></th><th>City<span class="zh">城市</span></th><th>Industry<span class="zh">產業</span></th><th>Actions<span class="zh">操作</span></th></tr>
                 </thead>
                 <tbody id="company-table-body"></tbody>
               </table>

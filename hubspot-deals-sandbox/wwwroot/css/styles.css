@@ -108,6 +108,28 @@ body {
   font-size: 18px; font-weight: 900; letter-spacing: -0.02em;
 }
 
+/* ── Chinese (Taiwan) translation toggle — real language switch ──── */
+.zh {
+  display: none;
+  font: inherit;
+  color: inherit;
+}
+.en { font: inherit; color: inherit; }
+body.zh-visible .zh { display: inline; }
+body.zh-visible .en { display: none; }
+body.zh-visible h2 .zh, body.zh-visible h3 .zh { display: block; }
+body.zh-visible p.zh, body.zh-visible div.zh { display: block; }
+
+#zh-toggle {
+  padding: 9px 16px; border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: #fff; color: var(--ink);
+  font: 700 13px "Manrope", sans-serif; cursor: pointer;
+  transition: all .14s;
+}
+#zh-toggle:hover { border-color: var(--accent); color: var(--accent-deep); }
+#zh-toggle.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-deep); }
+
 .sidebar,
 .panel-card, .result-card {
   background: rgba(255, 250, 242, 0.92);

@@ -29,43 +29,46 @@ export const crudState = {
   company: { mode: 'create', id: null },
 };
 
-// Text that changes when switching between create and edit mode.
+// Text that changes when switching between create and edit mode. HTML (not
+// plain text) so the zh-toggle keeps working after this overwrites the
+// static markup — see applyFormCopy(), which uses innerHTML for exactly
+// this reason.
 const FORM_COPY = {
   deal: {
     titleId:        'deal-form-title',
     helpId:         'deal-form-help',
     saveButtonId:   'btn-save-deal',
     cancelButtonId: 'btn-cancel-deal-edit',
-    createTitle:    'Create Deal',
-    createHelp:     'The Stage dropdown updates when you change the Pipeline.',
-    editTitle:      'Edit Deal',
-    editHelp:       'Update the selected deal and save the changes back to HubSpot.',
-    createButton:   'Create deal',
-    editButton:     'Save changes',
+    createTitle:    'Create Deal<span class="zh">建立交易</span>',
+    createHelp:     'The Stage dropdown updates when you change the Pipeline.<span class="zh">切換流程時階段下拉選單會自動更新。</span>',
+    editTitle:      'Edit Deal<span class="zh">編輯交易</span>',
+    editHelp:       'Update the selected deal and save the changes.<span class="zh">更新所選交易並儲存變更。</span>',
+    createButton:   'Create deal<span class="zh">建立交易</span>',
+    editButton:     'Save changes<span class="zh">儲存變更</span>',
   },
   contact: {
     titleId:        'contact-form-title',
     helpId:         null,
     saveButtonId:   'btn-save-contact',
     cancelButtonId: 'btn-cancel-contact-edit',
-    createTitle:    'Create Contact',
-    createHelp:     'Email is required — HubSpot uses it as the unique key for contacts.',
-    editTitle:      'Edit Contact',
-    editHelp:       'Update the selected contact and save the changes back to HubSpot.',
-    createButton:   'Create contact',
-    editButton:     'Save changes',
+    createTitle:    'Create Contact<span class="zh">建立聯絡人</span>',
+    createHelp:     'Email is required — it is used as the unique key for contacts.<span class="zh">Email 為必填，作為聯絡人的唯一識別鍵。</span>',
+    editTitle:      'Edit Contact<span class="zh">編輯聯絡人</span>',
+    editHelp:       'Update the selected contact and save the changes.<span class="zh">更新所選聯絡人並儲存變更。</span>',
+    createButton:   'Create contact<span class="zh">建立聯絡人</span>',
+    editButton:     'Save changes<span class="zh">儲存變更</span>',
   },
   company: {
     titleId:        'company-form-title',
     helpId:         null,
     saveButtonId:   'btn-save-company',
     cancelButtonId: 'btn-cancel-company-edit',
-    createTitle:    'Create Company',
-    createHelp:     'Company name is the anchor. Domain, city, and industry help when browsing records.',
-    editTitle:      'Edit Company',
-    editHelp:       'Update the selected company and save the changes back to HubSpot.',
-    createButton:   'Create company',
-    editButton:     'Save changes',
+    createTitle:    'Create Company<span class="zh">建立公司</span>',
+    createHelp:     'Company name is the anchor. Domain, city, and industry help when browsing records.<span class="zh">公司名稱是核心欄位。網域、城市與產業則有助於瀏覽資料。</span>',
+    editTitle:      'Edit Company<span class="zh">編輯公司</span>',
+    editHelp:       'Update the selected company and save the changes.<span class="zh">更新所選公司並儲存變更。</span>',
+    createButton:   'Create company<span class="zh">建立公司</span>',
+    editButton:     'Save changes<span class="zh">儲存變更</span>',
   },
 };
 
@@ -87,9 +90,9 @@ function applyFormCopy(entity) {
     ? document.getElementById(copy.helpId)
     : titleEl?.nextElementSibling;
 
-  titleEl.textContent = isEdit ? copy.editTitle   : copy.createTitle;
-  if (helpEl) helpEl.textContent = isEdit ? copy.editHelp : copy.createHelp;
-  saveButton.textContent = isEdit ? copy.editButton : copy.createButton;
+  titleEl.innerHTML = isEdit ? copy.editTitle   : copy.createTitle;
+  if (helpEl) helpEl.innerHTML = isEdit ? copy.editHelp : copy.createHelp;
+  saveButton.innerHTML = isEdit ? copy.editButton : copy.createButton;
   cancelButton.classList.toggle('hidden', !isEdit);
 }
 
@@ -105,7 +108,7 @@ export function syncCrudForms(state) {
 }
 
 // ── Payload builders ──────────────────────────────────────────────────────────
-// Only include fields that have a value — avoids sending empty strings to HubSpot.
+// Only include fields that have a value — avoids sending empty strings.
 
 export function buildDealPayload() {
   const payload = {};

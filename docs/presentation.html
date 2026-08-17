@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HubSpot CRM Sandbox — Denis Ryzhed</title>
+  <title>CRM Sandbox — Denis Ryzhov</title>
   <style>
     :root {
       --bg: #efe7db;
@@ -657,6 +657,7 @@
 
     body.zh-visible p.zh  { display: block  !important; }
     body.zh-visible span.zh { display: inline !important; }
+    body.zh-visible .en { display: none !important; }
 
     .deck-progress {
       position: fixed;
@@ -849,8 +850,8 @@
       <header class="slide-header">
         <div class="slide-title">
           <span class="eyebrow">Portfolio project</span>
-          <h1>Built to work with <span class="mark">real HubSpot</span> data</h1>
-          <p class="zh">真实对接 HubSpot 的 CRM 演示项目</p>
+          <h1>A CRM built <span class="mark">entirely from scratch</span></h1>
+          <p class="zh">完全從零開始打造的 CRM 系統</p>
         </div>
         <div class="slide-no">01</div>
       </header>
@@ -860,12 +861,12 @@
           <div class="badge-row">
             <span class="badge accent">Zero bundler</span>
             <span class="badge">Native ES modules</span>
-            <span class="badge">Live HubSpot API</span>
+            <span class="badge">Zero external dependencies</span>
             <span class="badge green">Runtime plugins</span>
             <span class="badge blue">CSV import / export</span>
           </div>
           <div class="metric-grid">
-            <div class="metric"><strong>Real</strong><span>Every record reads from and writes to a live HubSpot sandbox — not a fake database</span></div>
+            <div class="metric"><strong>Own</strong><span>Every record reads from and writes to a self-built, file-backed store — not a mock, not a third-party service</span></div>
             <div class="metric"><strong>▶</strong><span>Expand any row to see linked records inline. Deals show contacts and companies. No separate screen.</span></div>
             <div class="metric"><strong>ZIP</strong><span>Drop a plugin file — a new panel appears in the workspace without touching the main code</span></div>
           </div>
@@ -873,13 +874,13 @@
 
         <div class="col-5 card tight screenshot-card">
           <div class="screenshot-frame wide">
-            <img src="screenshots/deals-panel.png" alt="HubSpot CRM sandbox deals panel">
+            <img src="screenshots/deals-panel.png" alt="CRM sandbox deals panel">
           </div>
-          <p class="caption">Deals panel — 24 live records, stage pills from HubSpot, per-row action menus, name/stage/pipeline filters, and paginator. All data is real.<br><span class="zh" style="font-size:11px;">商机面板 — 24 条实时数据，阶段标签来自 HubSpot，行级操作菜单，过滤与分页。</span></p>
+          <p class="caption">Deals panel — live records, stage pills, per-row action menus, name/stage/pipeline filters, and paginator. All data is real, all of it self-built.<br><span class="zh" style="font-size:11px;">交易面板 — 即時資料、階段標籤、行級操作選單、名稱／階段／流程篩選與分頁。所有資料都是真實的，且完全自建。</span></p>
         </div>
       </div>
 
-      <footer class="footer"><strong>Denis Ryzhed</strong><span>C# · ASP.NET · HubSpot API · CRM integration · Runtime plugins · CSV workflow</span></footer>
+      <footer class="footer"><strong>Denis Ryzhov</strong><span>C# · ASP.NET · self-built data layer · CRM architecture · Runtime plugins · CSV workflow</span></footer>
     </section>
 
     <section class="slide" id="slide-2">
@@ -887,7 +888,7 @@
         <div class="slide-title">
           <span class="eyebrow">The right order</span>
           <h2>Company first. Contact second. Deal third.</h2>
-          <p class="zh">操作顺序与真实 CRM 用户一致</p>
+          <p class="zh">操作順序與真實 CRM 使用者一致</p>
         </div>
         <div class="slide-no">02</div>
       </header>
@@ -895,23 +896,23 @@
       <div class="flow">
         <div class="flow-step">
           <div class="num">1</div>
-          <h3>Create company <span class="zh" style="font-size:12px;display:block;margin-top:2px;">创建公司</span></h3>
-          <p>Industry options come from HubSpot — the field can only hold valid values. No free-text surprises.</p>
+          <h3>Create company <span class="zh" style="font-size:12px;display:block;margin-top:2px;">建立公司</span></h3>
+          <p>Industry options come from a fixed set of values — the field can only hold valid values. No free-text surprises.</p>
         </div>
         <div class="flow-step">
           <div class="num">2</div>
-          <h3>Create contact <span class="zh" style="font-size:12px;display:block;margin-top:2px;">创建联系人</span></h3>
-          <p>Email is the unique key. HubSpot rejects duplicates and the UI maps the error back to the exact field.</p>
+          <h3>Create contact <span class="zh" style="font-size:12px;display:block;margin-top:2px;">建立聯絡人</span></h3>
+          <p>Email is the unique key. Duplicates are rejected and the UI maps the error back to the exact field.</p>
         </div>
         <div class="flow-step">
           <div class="num">3</div>
-          <h3>Create deal <span class="zh" style="font-size:12px;display:block;margin-top:2px;">创建商机</span></h3>
-          <p>Pipeline selection loads its stages live. Pick the wrong stage for a pipeline and HubSpot says no.</p>
+          <h3>Create deal <span class="zh" style="font-size:12px;display:block;margin-top:2px;">建立交易</span></h3>
+          <p>Pipeline selection loads its stages live. Pick the wrong stage for a pipeline and the app says no.</p>
         </div>
         <div class="flow-step">
           <div class="num">4</div>
-          <h3>Associate and audit <span class="zh" style="font-size:12px;display:block;margin-top:2px;">建立关联并审计</span></h3>
-          <p>Link the deal to a contact or company from the row action menu. The Audit plugin scores data quality gaps.</p>
+          <h3>Associate and cross-link <span class="zh" style="font-size:12px;display:block;margin-top:2px;">建立關聯與跨模組連結</span></h3>
+          <p>Link the deal to a contact or company from the row action menu. The Defects module can point at a company the same way.</p>
         </div>
       </div>
 
@@ -922,7 +923,7 @@
         </div>
         <div class="callout">
           <h3>Deal second</h3>
-          <p>Pipeline and stage metadata come from HubSpot, so the deal form follows real CRM rules.</p>
+          <p>Pipeline and stage metadata are built in, so the deal form follows real CRM rules.</p>
         </div>
         <div class="callout">
           <h3>Relationships last</h3>
@@ -937,8 +938,8 @@
       <header class="slide-header">
         <div class="slide-title">
           <span class="eyebrow">Deals</span>
-          <h2>Create a deal. Pick a stage. HubSpot validates it.</h2>
-          <p class="zh">商机表单与 HubSpot 实时数据直连</p>
+          <h2>Create a deal. Pick a stage. The app validates it.</h2>
+          <p class="zh">交易表單直連自建資料層</p>
         </div>
         <div class="slide-no">03</div>
       </header>
@@ -949,22 +950,22 @@
             <div class="bullet">
               <div class="icon">1</div>
               <div>
-                <h3>Stages reload when you switch pipeline <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">切换管道时阶段实时更新</span></h3>
-                <p>Switch pipeline — the stage list updates instantly from HubSpot. Wrong stage for that pipeline? The API rejects it.</p>
+                <h3>Stages reload when you switch pipeline <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">切換流程時階段即時更新</span></h3>
+                <p>Switch pipeline — the stage list updates instantly. Wrong stage for that pipeline? Rejected.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">2</div>
               <div>
-                <h3>Edit and delete from the row <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">在表格行内直接操作</span></h3>
+                <h3>Edit and delete from the row <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">在表格列內直接操作</span></h3>
                 <p>Open ⋯ on any row to edit, delete, or associate. No separate page, no extra click.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">3</div>
               <div>
-                <h3>Form shows which field failed <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">表单标记出错字段</span></h3>
-                <p>When HubSpot rejects a value, the error lands on the exact field — not just a generic message.</p>
+                <h3>Form shows which field failed <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">表單標記出錯欄位</span></h3>
+                <p>When a value is rejected, the error lands on the exact field — not just a generic message.</p>
               </div>
             </div>
           </div>
@@ -974,11 +975,11 @@
           <div class="screenshot-frame">
             <img src="screenshots/deals-panel.png" alt="Deals panel">
           </div>
-          <p class="caption">Deals panel — filters by name, stage, and pipeline; inline edit and delete from the ⋯ menu; pagination with page size control.<br><span class="zh" style="font-size:11px;">商机面板 — 按名称/阶段/管道筛选，⋯ 菜单内联编辑，分页控制。</span></p>
+          <p class="caption">Deals panel — filters by name, stage, and pipeline; inline edit and delete from the ⋯ menu; pagination with page size control.<br><span class="zh" style="font-size:11px;">交易面板 — 依名稱／階段／流程篩選，⋯ 選單內行內編輯，分頁控制。</span></p>
         </div>
       </div>
 
-      <footer class="footer"><strong>Technical point:</strong><span>Frontend module owns UI; backend module owns routes and HubSpot service calls.</span></footer>
+      <footer class="footer"><strong>Technical point:</strong><span>Frontend module owns UI; backend module owns routes and calls into LocalCrmStore.</span></footer>
     </section>
 
     <section class="slide" id="slide-4">
@@ -986,7 +987,7 @@
         <div class="slide-title">
           <span class="eyebrow">Linking records</span>
           <h2>Connect a deal to the right person and company</h2>
-          <p class="zh">无需手动输入 ID 即可建立关联</p>
+          <p class="zh">無需手動輸入 ID 即可建立關聯</p>
         </div>
         <div class="slide-no">04</div>
       </header>
@@ -996,25 +997,25 @@
           <div class="screenshot-frame">
             <img src="screenshots/associate-modal.png" alt="Associate modal">
           </div>
-          <p class="caption">Associate modal — opened from the ⋯ row menu. Creates the HubSpot association record. After saving, the ▶ row toggle shows the new link immediately.<br><span class="zh" style="font-size:11px;">关联弹窗 — 从 ⋯ 菜单打开，创建 HubSpot 关联记录。保存后，▶ 行展开即可验证关联结果。</span></p>
+          <p class="caption">Associate modal — opened from the ⋯ row menu. Writes a link into the store. After saving, the ▶ row toggle shows the new link immediately.<br><span class="zh" style="font-size:11px;">關聯彈窗 — 從 ⋯ 選單開啟，將連結寫入資料儲存中。儲存後，▶ 展開列即可立即驗證新的關聯。</span></p>
         </div>
         <div class="col-5 stack">
           <div class="card">
             <h3>Why this detail matters</h3>
-            <p class="caption">Most HubSpot integrations get this wrong first time. Association records are a separate PUT call with a fixed type ID — not a field on the deal. The sandbox makes that explicit.</p>
+            <p class="caption">Most CRM integrations get this wrong first time. Association records are their own entity — bidirectional links, not a field on the deal. The app makes that explicit.</p>
           </div>
           <div class="bullet-list">
             <div class="bullet">
               <div class="icon">⋯</div>
               <div>
-                <h3>One click from any table row <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">任意行一键发起关联</span></h3>
+                <h3>One click from any table row <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">任意列一鍵發起關聯</span></h3>
                 <p>Open the action menu, choose Associate… — modal opens with the right context already set.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">▶</div>
               <div>
-                <h3>Inline links — click ▶ to expand <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">点击 ▶ 展开关联记录</span></h3>
+                <h3>Inline links — click ▶ to expand <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">點擊 ▶ 展開關聯紀錄</span></h3>
                 <p>Every row in Deals, Contacts, and Companies has a ▶ toggle. Click it to see linked records inline — no separate screen needed. Only one row can be open at a time.</p>
               </div>
             </div>
@@ -1022,7 +1023,7 @@
         </div>
       </div>
 
-      <footer class="footer"><strong>HubSpot detail:</strong><span>deal↔contact = type 3 · deal↔company = type 5 · created via PUT, not PATCH on the deal</span></footer>
+      <footer class="footer"><strong>Design detail:</strong><span>every association is written both ways at once — deal→contact and contact→deal — so either side can query it directly</span></footer>
     </section>
 
     <section class="slide" id="slide-5">
@@ -1030,7 +1031,7 @@
         <div class="slide-title">
           <span class="eyebrow">Bulk import</span>
           <h2>Check every row before anything gets saved</h2>
-          <p class="zh">导入/导出作为集成工作流</p>
+          <p class="zh">匯入／匯出作為完整工作流程</p>
         </div>
         <div class="slide-no">05</div>
       </header>
@@ -1041,21 +1042,21 @@
             <div class="bullet">
               <div class="icon">T</div>
               <div>
-                <h3>Templates <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">字段模板下载</span></h3>
+                <h3>Templates <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">欄位範本下載</span></h3>
                 <p>Downloads approved columns per object type so imports stay predictable.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">V</div>
               <div>
-                <h3>Preview validation <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">写入前逐行预览校验</span></h3>
+                <h3>Preview validation <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">寫入前逐列預覽驗證</span></h3>
                 <p>Checks required fields, email format, numeric amount, dates, stages, and allowed options.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">A</div>
               <div>
-                <h3>Apply after review <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">确认无误后批量写入</span></h3>
+                <h3>Apply after review <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">確認無誤後批次寫入</span></h3>
                 <p>Rows are written only after the preview says the batch is safe.</p>
               </div>
             </div>
@@ -1066,7 +1067,7 @@
           <div class="screenshot-frame">
             <img src="screenshots/import-panel.png" alt="Import export panel">
           </div>
-          <p class="caption">Import/Export panel — download a template, upload a CSV, preview validation results per row, then apply the batch to HubSpot.<br><span class="zh" style="font-size:11px;">导入导出面板 — 下载模板，上传 CSV，逐行预览校验结果，确认后批量写入 HubSpot。</span></p>
+          <p class="caption">Import/Export panel — download a template, upload a CSV, preview validation results per row, then apply the batch to the store.<br><span class="zh" style="font-size:11px;">匯入匯出面板 — 下載範本、上傳 CSV、逐列預覽驗證結果，確認後批次寫入資料儲存。</span></p>
         </div>
       </div>
 
@@ -1078,7 +1079,7 @@
         <div class="slide-title">
           <span class="eyebrow">Settings &amp; Plugins</span>
           <h2>Upload a ZIP. A new CRM tool appears.</h2>
-          <p class="zh">所有面板统一管理 — 排序、开关、删除</p>
+          <p class="zh">所有面板統一管理 — 排序、開關、刪除</p>
         </div>
         <div class="slide-no">06</div>
       </header>
@@ -1088,28 +1089,28 @@
           <div class="screenshot-frame">
             <img src="screenshots/settings-panel.png" alt="Settings panel with full module list">
           </div>
-          <p class="caption">Full module list: Deals and Contacts (system), Audit (Plugin — enable/disable/delete), Companies, then Associations and Import/Export (Auto — enable/disable/reorder). Drop a ZIP on the right to install a new panel instantly.<br><span class="zh" style="font-size:11px;">完整模块列表：系统模块、插件模块（可启禁/删除）、自动面板（可启禁/排序）。右侧上传 ZIP 即时新增面板。</span></p>
+          <p class="caption">Full module list: Deals, Contacts, Companies, Defects (built-in), then Deal Links and Import/Export (Auto — enable/disable/reorder). Drop a ZIP on the right to install a new panel instantly.<br><span class="zh" style="font-size:11px;">完整模組清單：內建模組，以及可啟停／排序的自動面板。右側上傳 ZIP 即時新增面板。</span></p>
         </div>
         <div class="col-5 stack">
           <div class="bullet-list">
             <div class="bullet">
               <div class="icon">📦</div>
               <div>
-                <h3>ZIP upload → live panel <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">ZIP 上传即时出现新面板</span></h3>
+                <h3>ZIP upload → live panel <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">ZIP 上傳即時出現新面板</span></h3>
                 <p>Drop a ZIP with a <code>.plugin.dll</code> and a matching <code>.js</code> module. The UI panel appears immediately and backend actions run through the host dispatcher.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">↑↓</div>
               <div>
-                <h3>Reorder anything <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">任意调整面板顺序</span></h3>
+                <h3>Reorder anything <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">任意調整面板順序</span></h3>
                 <p>System modules, plugins, and auto panels all share one ordered list. Arrow buttons reposition any row; order persists across reloads.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">✓</div>
               <div>
-                <h3>Enable / disable without deleting <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">无需删除即可禁用</span></h3>
+                <h3>Enable / disable without deleting <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">無需刪除即可停用</span></h3>
                 <p>Uncheck a plugin or utility panel to hide it from the nav. The files stay installed. Re-check to bring it back — no reinstall needed.</p>
               </div>
             </div>
@@ -1125,7 +1126,7 @@
         <div class="slide-title">
           <span class="eyebrow">Error handling</span>
           <h2>You see exactly what went wrong and where</h2>
-          <p class="zh">集中化的字段级 API 错误提示</p>
+          <p class="zh">集中化的欄位層級錯誤提示</p>
         </div>
         <div class="slide-no">07</div>
       </header>
@@ -1136,21 +1137,21 @@
             <div class="bullet">
               <div class="icon">API</div>
               <div>
-                <h3>One parser <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">统一错误解析器</span></h3>
-                <p>The API wrapper extracts messages and field errors from HubSpot responses.</p>
+                <h3>One parser <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">統一錯誤解析器</span></h3>
+                <p>The API wrapper extracts messages and field errors from every response, in one place.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">UI</div>
               <div>
-                <h3>One renderer <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">统一错误渲染器</span></h3>
+                <h3>One renderer <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">統一錯誤渲染器</span></h3>
                 <p>The shared UI helper adds summary blocks, invalid styles, and inline hints.</p>
               </div>
             </div>
             <div class="bullet">
               <div class="icon">MOD</div>
               <div>
-                <h3>No module duplication <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">各模块无重复逻辑</span></h3>
+                <h3>No module duplication <span class="zh" style="font-size:11px;display:block;margin-top:2px;font-weight:400;">各模組無重複邏輯</span></h3>
                 <p>Future modules and plugins can opt in by using standard ids or data-field attributes.</p>
               </div>
             </div>
@@ -1161,7 +1162,7 @@
           <div class="screenshot-frame">
             <img src="screenshots/contact-validation-error.png" alt="Contact form validation error">
           </div>
-          <p class="caption">Duplicate contact email is mapped to the Email field with a form summary and inline hint — not only a generic toast.<br><span class="zh" style="font-size:11px;">重复邮箱错误被精确定位到邮箱字段，同时显示表单摘要和内联提示，而非仅弹出通用提示。</span></p>
+          <p class="caption">Duplicate contact email is mapped to the Email field with a form summary and inline hint — not only a generic toast.<br><span class="zh" style="font-size:11px;">重複電子郵件錯誤會精確對應到 Email 欄位，同時顯示表單摘要與內聯提示，而非僅彈出通用提示。</span></p>
         </div>
       </div>
 
@@ -1172,22 +1173,22 @@
       <header class="slide-header">
         <div class="slide-title">
           <span class="eyebrow">Summary</span>
-          <h2>Real data. Real HubSpot. Real integration.</h2>
-          <p class="zh">这不是界面原型，而是可运行的 CRM 集成系统</p>
+          <h2>Real data. Self-built. From scratch.</h2>
+          <p class="zh">這不是介面原型，而是可運行的完整 CRM 系統</p>
         </div>
         <div class="slide-no">08</div>
       </header>
 
       <div class="proof-grid">
         <div class="proof-card">
-          <strong>API</strong>
-          <h3>Live HubSpot integration</h3>
-          <p>Records, pipelines, stages, lifecycle stages, and company industry options are read from HubSpot instead of being hardcoded.</p>
+          <strong>OWN</strong>
+          <h3>Self-built data layer</h3>
+          <p>Records, pipelines, stages, lifecycle stages, and industry options all come from code the author wrote instead of a third-party service.</p>
         </div>
         <div class="proof-card">
           <strong>CRM</strong>
           <h3>Correct association model</h3>
-          <p>Deals, contacts, and companies are separate objects; relationships are created through HubSpot association endpoints.</p>
+          <p>Deals, contacts, and companies are separate objects; relationships are explicit, bidirectional links — not embedded fields.</p>
         </div>
         <div class="proof-card">
           <strong>ZIP</strong>
@@ -1197,18 +1198,18 @@
         <div class="proof-card">
           <strong>UX</strong>
           <h3>Errors users can fix</h3>
-          <p>HubSpot rejection messages are parsed once and rendered as form summaries, invalid fields, and inline hints.</p>
+          <p>Rejection messages are parsed once and rendered as form summaries, invalid fields, and inline hints.</p>
         </div>
       </div>
 
-      <footer class="footer"><strong>Demo close:</strong><span>A small ASP.NET + native ES module system with visible tradeoffs and real integration behavior.</span></footer>
+      <footer class="footer"><strong>Demo close:</strong><span>A small ASP.NET + native ES module system, built end to end, with visible tradeoffs and no hidden dependencies.</span></footer>
     </section>
     <section class="slide appendix" id="slide-9">
       <header class="slide-header">
         <div class="slide-title">
           <span class="eyebrow">Appendix</span>
-          <h2>HubSpot API reference used by the sandbox</h2>
-          <p class="zh">HubSpot API 参考</p>
+          <h2>The app's own API surface</h2>
+          <p class="zh">應用程式自己的 API 介面</p>
         </div>
         <div class="slide-no">REF</div>
       </header>
@@ -1216,33 +1217,33 @@
       <div class="appendix-grid">
         <div class="api-group">
           <h3>CRUD objects</h3>
-          <p>List, create, update, and delete CRM records for deals, contacts, and companies.</p>
-          <code>GET /crm/v3/objects/{type}</code>
-          <code>POST /crm/v3/objects/{type}</code>
-          <code>PATCH /crm/v3/objects/{type}/{id}</code>
-          <code>DELETE /crm/v3/objects/{type}/{id}</code>
+          <p>List, create, update, and delete records for deals, contacts, companies, and defects — same shape for every module.</p>
+          <code>GET /api/{type}</code>
+          <code>POST /api/{type}</code>
+          <code>PATCH /api/{type}/{id}</code>
+          <code>DELETE /api/{type}/{id}</code>
         </div>
         <div class="api-group">
           <h3>Search and filters</h3>
-          <p>Deal search powers name, stage, and pipeline filtering without loading fake local data.</p>
-          <code>POST /crm/v3/objects/deals/search</code>
+          <p>Deal search powers name, stage, and pipeline filtering against the in-memory store.</p>
+          <code>POST /api/deals/search</code>
         </div>
         <div class="api-group">
           <h3>Metadata</h3>
-          <p>Form dropdowns use real HubSpot metadata, so the user cannot submit invalid options.</p>
-          <code>GET /crm/v3/pipelines/deals</code>
-          <code>GET /crm/v3/properties/companies/industry</code>
+          <p>Form dropdowns read from built-in metadata, so the user cannot submit invalid options.</p>
+          <code>GET /api/pipelines</code>
+          <code>GET /api/bootstrap</code>
         </div>
         <div class="api-group">
           <h3>Associations</h3>
-          <p>Deal links are separate association records. Type IDs are fixed HubSpot constants.</p>
-          <code>GET /crm/v3/objects/deals/{id}/associations/{type}</code>
-          <code>PUT /crm/v3/objects/deals/{id}/associations/{type}/{targetId}/{typeId}</code>
-          <p style="margin-top:12px;">type 3 = contact; type 5 = company.</p>
+          <p>Links are written both directions at once and stored alongside the records — no fixed type-id table to memorize.</p>
+          <code>GET /api/associations/{dealId}/{type}</code>
+          <code>POST /api/associate</code>
+          <p style="margin-top:12px;">One association store, shared by deals, contacts, and companies.</p>
         </div>
       </div>
 
-      <footer class="footer"><strong>Auth:</strong><span>Private app token in Authorization: Bearer header. Base URL: https://api.hubapi.com/</span></footer>
+      <footer class="footer"><strong>Data:</strong><span>Everything persists to App_Data/crm-store.json. No auth header, no external base URL — it's all local.</span></footer>
     </section>
   </main>
   <aside class="speaker-notes" id="speaker-notes" hidden>
@@ -1273,15 +1274,15 @@
       let programmaticScroll = false;
 
       const notes = {
-        'slide-1': 'Open with credibility: this is live HubSpot data, not a mockup. Mention no React/no bundler only after the product story is clear.',
+        'slide-1': 'Open with credibility: this is a real, running CRM built entirely from scratch, not a mockup and not wired to a third-party service. Mention no React/no bundler only after the product story is clear.',
         'slide-2': 'Explain the CRM order: company/contact first, deal second, relationships last. Then switch to the live app if the audience is non-technical.',
         'slide-3': 'Point out ownership: frontend module owns UI, backend module owns routes/service, shared utilities handle table actions and validation.',
-        'slide-4': 'This is the HubSpot-specific proof. Associations are separate records and API calls, not fields embedded in the deal. Click ▶ on any row to verify — no separate screen needed.',
+        'slide-4': 'This is the association-model proof. Links are separate records and API calls, not fields embedded in the deal. Click ▶ on any row to verify — no separate screen needed.',
         'slide-5': 'Frame CSV as preview-before-write, not just upload/download. This shows integration discipline.',
         'slide-6': 'Be precise: runtime plugin UI appears through ZIP upload; backend actions use a host dispatcher. Do not claim arbitrary Minimal API routes are hot-added.',
         'slide-7': 'Strong UX point: user sees the exact field to fix. One parser, one renderer, no duplicated module-specific error code.',
         'slide-8': 'Close here. Summarize the four proofs and stop. Use the appendix only if they ask for endpoints.',
-        'slide-9': 'Appendix only. The frontend calls local sandbox endpoints; backend calls HubSpot with the private app token.'
+        'slide-9': 'Appendix only. Everything here is the app calling its own local API and writing to its own file — no external account, no token, nothing to configure.'
       };
 
       function updateUi() {
@@ -1393,6 +1394,49 @@
       slides.forEach(slide => observer.observe(slide));
       if (url.searchParams.get('presenter') === '1') toggleNotes(true);
       updateUi();
+    })();
+
+    // Marks the English content right before every .zh element as .en, so
+    // the 中文 toggle is a real language switch instead of stacking both
+    // languages at once. Handles "text<span class=zh>" and "<p>text</p><p
+    // class=zh>" shapes.
+    (function wrapEnglishBeforeZh() {
+      var BLOCK_TAGS = { P: 1, H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1, DIV: 1, LI: 1, TR: 1, TD: 1, TH: 1 };
+
+      document.querySelectorAll('.zh').forEach(function (zhEl) {
+        var firstMeaningful = zhEl.previousSibling;
+        while (firstMeaningful && firstMeaningful.nodeType === Node.TEXT_NODE && !firstMeaningful.textContent.trim()) {
+          firstMeaningful = firstMeaningful.previousSibling;
+        }
+        if (!firstMeaningful) return;
+
+        if (firstMeaningful.nodeType === Node.ELEMENT_NODE &&
+            (firstMeaningful.classList.contains('zh') || firstMeaningful.classList.contains('en'))) {
+          return;
+        }
+
+        if (firstMeaningful.nodeType === Node.ELEMENT_NODE && BLOCK_TAGS[firstMeaningful.tagName]) {
+          firstMeaningful.classList.add('en');
+          return;
+        }
+
+        var collected = [];
+        var node = zhEl.previousSibling;
+        while (node) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.classList.contains('zh') || node.classList.contains('en')) break;
+            if (BLOCK_TAGS[node.tagName]) break;
+          }
+          var prev = node.previousSibling;
+          collected.unshift(node);
+          node = prev;
+        }
+        if (collected.length === 0) return;
+        var enSpan = document.createElement('span');
+        enSpan.className = 'en';
+        collected.forEach(function (n) { enSpan.appendChild(n); });
+        zhEl.parentNode.insertBefore(enSpan, zhEl);
+      });
     })();
   </script>
 </body>

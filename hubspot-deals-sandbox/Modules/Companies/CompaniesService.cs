@@ -1,13 +1,13 @@
-using HubSpotDealsSandbox.HubSpot;
+using HubSpotDealsSandbox.Data;
 using HubSpotDealsSandbox.HubSpot.Models;
 
 namespace HubSpotDealsSandbox.Modules.Companies;
 
 public sealed class CompaniesService
 {
-    private readonly HubSpotDealsClient _client;
+    private readonly LocalCrmStore _client;
 
-    public CompaniesService(HubSpotDealsClient client)
+    public CompaniesService(LocalCrmStore client)
     {
         _client = client;
     }

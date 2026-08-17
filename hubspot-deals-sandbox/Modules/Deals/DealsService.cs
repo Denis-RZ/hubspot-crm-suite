@@ -1,15 +1,15 @@
-using HubSpotDealsSandbox.HubSpot;
+using HubSpotDealsSandbox.Data;
 using HubSpotDealsSandbox.HubSpot.Models;
 
 namespace HubSpotDealsSandbox.Modules.Deals;
 
 public sealed class DealsService
 {
-    private readonly HubSpotDealsClient _client;
+    private readonly LocalCrmStore _client;
     private readonly ModuleAvailability _moduleAvailability;
 
     public DealsService(
-        HubSpotDealsClient client,
+        LocalCrmStore client,
         ModuleAvailability moduleAvailability)
     {
         _client = client;

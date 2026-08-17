@@ -1,6 +1,3 @@
-using System.Text.Json;
-using HubSpotDealsSandbox.HubSpot;
-
 namespace HubSpotDealsSandbox;
 
 public static class ApiEndpointHelpers
@@ -19,10 +16,6 @@ public static class ApiEndpointHelpers
         {
             return Results.BadRequest(new { message = ex.Message });
         }
-        catch (HubSpotApiException ex)
-        {
-            return CreateHubSpotErrorResult(ex);
-        }
     }
 
     public static async Task<IFormFile> ReadUploadedCsvAsync(
@@ -38,32 +31,5 @@ public static class ApiEndpointHelpers
         }
 
         return file;
-    }
-
-    public static IResult CreateHubSpotErrorResult(HubSpotApiException ex)
-    {
-        object payload;
-
-        if (!string.IsNullOrWhiteSpace(ex.ResponseBody))
-        {
-            try
-            {
-                payload = JsonSerializer.Deserialize<JsonElement>(ex.ResponseBody);
-            }
-            catch (JsonException)
-            {
-                payload = new
-                {
-                    message = ex.Message,
-                    details = ex.ResponseBody
-                };
-            }
-        }
-        else
-        {
-            payload = new { message = ex.Message };
-        }
-
-        return Results.Json(payload, statusCode: ex.StatusCode);
     }
 }

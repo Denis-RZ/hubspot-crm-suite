@@ -128,7 +128,7 @@ async function deleteDeal(dealId, button) {
   const deal = state.deals.find(record => record.id === dealId);
   const label = deal?.properties?.dealname || dealId;
 
-  if (!confirm(`Delete deal "${label}"? This writes to the live HubSpot sandbox.`)) {
+  if (!confirm(`Delete deal "${label}"? This cannot be undone.`)) {
     return;
   }
 
@@ -316,7 +316,7 @@ export default {
   renderNav() {
     return `
       <button class="nav-button" data-panel="deals">
-        Deals <span class="nav-badge" data-module-badge="deals">...</span>
+        Deals<span class="zh">交易</span> <span class="nav-badge" data-module-badge="deals">...</span>
       </button>`;
   },
   renderPanel() {
@@ -324,51 +324,51 @@ export default {
       <section id="panel-deals" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Deals</h2>
+            <h2>Deals<span class="zh">交易</span></h2>
             <p>Create deals with valid pipeline metadata, search by any property,
-               then use <strong>Associate…</strong> in the ⋯ menu to link it to a contact or company.</p>
+               then use <strong>Associate…</strong> in the ⋯ menu to link it to a contact or company.<span class="zh">建立包含有效銷售流程資料的交易，可依任意欄位搜尋，並透過 ⋯ 選單中的「Associate…」將其連結到聯絡人或公司。</span></p>
           </div>
-          <div class="sub-badge">Stages come from HubSpot</div>
+          <div class="sub-badge">Stages are built-in pipeline metadata<span class="zh">階段為內建的銷售流程資料</span></div>
         </div>
 
         <div class="grid-2">
           <article class="section-card">
-            <h3 id="deal-form-title">Create Deal</h3>
-            <p id="deal-form-help">The Stage dropdown updates when you change the Pipeline.</p>
+            <h3 id="deal-form-title">Create Deal<span class="zh">建立交易</span></h3>
+            <p id="deal-form-help">The Stage dropdown updates when you change the Pipeline.<span class="zh">切換銷售流程時，階段下拉選單會自動更新。</span></p>
             <div class="form-grid cols-2">
               <div>
-                <label for="deal-name">Deal name <span class="label-hint">required</span></label>
+                <label for="deal-name">Deal name<span class="zh">交易名稱</span> <span class="label-hint">required</span></label>
                 <input id="deal-name" type="text" placeholder="AI rack upgrade">
                 <div class="field-error" id="err-deal-name">Deal name is required.</div>
               </div>
               <div>
-                <label for="deal-amount">Amount</label>
+                <label for="deal-amount">Amount<span class="zh">金額</span></label>
                 <input id="deal-amount" type="text" placeholder="25000">
               </div>
               <div>
-                <label for="deal-pipeline">Pipeline</label>
+                <label for="deal-pipeline">Pipeline<span class="zh">銷售流程</span></label>
                 <select id="deal-pipeline" disabled></select>
               </div>
               <div>
-                <label for="deal-stage">Stage</label>
+                <label for="deal-stage">Stage<span class="zh">階段</span></label>
                 <select id="deal-stage" disabled></select>
               </div>
               <div>
-                <label for="deal-close-date">Close date</label>
+                <label for="deal-close-date">Close date<span class="zh">預計成交日</span></label>
                 <input id="deal-close-date" type="date">
               </div>
             </div>
             <div class="actions">
-              <button id="btn-save-deal" class="button button-primary">Create deal</button>
-              <button id="btn-cancel-deal-edit" class="button button-secondary hidden">Cancel edit</button>
+              <button id="btn-save-deal" class="button button-primary">Create deal<span class="zh">建立交易</span></button>
+              <button id="btn-cancel-deal-edit" class="button button-secondary hidden">Cancel edit<span class="zh">取消編輯</span></button>
             </div>
           </article>
 
           <article class="table-card">
             <div class="table-toolbar">
               <div>
-                <h3>Deal Records</h3>
-                <p>Use ⋯ → <strong>Associate…</strong> to link a deal to a contact or company.</p>
+                <h3>Deal Records<span class="zh">交易紀錄</span></h3>
+                <p>Use ⋯ → <strong>Associate…</strong> to link a deal to a contact or company.<span class="zh">使用 ⋯ → 「Associate…」將交易連結到聯絡人或公司。</span></p>
               </div>
               <span id="deal-count" class="pill">0 deals</span>
             </div>
@@ -376,15 +376,15 @@ export default {
               <input id="filter-deal-name" class="filter-input" type="search" placeholder="Search by name...">
               <select id="filter-deal-stage" class="filter-select"><option value="">All stages</option></select>
               <select id="filter-deal-pipeline" class="filter-select"><option value="">All pipelines</option></select>
-              <button id="btn-clear-deal-filters" class="filter-clear">Clear</button>
+              <button id="btn-clear-deal-filters" class="filter-clear">Clear<span class="zh">清除</span></button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th class="col-expand"></th>
-                    <th>Name</th><th>Stage</th>
-                    <th>Amount</th><th>Pipeline</th><th>Actions</th>
+                    <th>Name<span class="zh">名稱</span></th><th>Stage<span class="zh">階段</span></th>
+                    <th>Amount<span class="zh">金額</span></th><th>Pipeline<span class="zh">流程</span></th><th>Actions<span class="zh">操作</span></th>
                   </tr>
                 </thead>
                 <tbody id="deal-table-body"></tbody>

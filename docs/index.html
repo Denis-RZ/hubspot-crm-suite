@@ -32,6 +32,31 @@
       line-height: 1.6;
     }
 
+    /* ── ZH TOGGLE — real language switch, not stacked subtitles ── */
+    .zh {
+      font: inherit;
+      color: inherit;
+      letter-spacing: inherit;
+      line-height: inherit;
+      display: none !important;
+    }
+    .en { font: inherit; color: inherit; }
+    body.zh-visible .en { display: none !important; }
+    body.zh-visible p.zh,
+    body.zh-visible div.zh { display: block !important; }
+    body.zh-visible span.zh { display: inline !important; }
+    #zh-toggle {
+      padding: 9px 16px; border-radius: 12px;
+      border: 1.5px solid var(--line);
+      background: var(--white); color: var(--ink);
+      font: 700 13px "Manrope", sans-serif; cursor: pointer;
+      transition: all .14s;
+    }
+    #zh-toggle:hover { border-color: var(--accent); color: var(--accent); }
+    #zh-toggle.active {
+      background: var(--accent-soft); border-color: var(--accent); color: var(--accent-deep);
+    }
+
     /* ── NAV ─────────────────────────────────────────── */
     nav {
       position: sticky; top: 0; z-index: 100;
@@ -105,11 +130,13 @@
       line-height: 1.1; max-width: 800px; margin: 0 auto 20px;
     }
     .hero h1 em { font-style: normal; color: var(--accent); }
+    body.zh-visible .hero h1 .zh { display: inline !important; }
     .hero-sub {
       font-size: clamp(15px, 2vw, 19px);
       color: rgba(255,255,255,.62); max-width: 560px;
       margin: 0 auto 40px; line-height: 1.55;
     }
+    body.zh-visible .hero-sub .zh { display: inline !important; }
     .hero-actions {
       display: flex; align-items: center; justify-content: center;
       flex-wrap: wrap; gap: 12px; margin-bottom: 56px;
@@ -168,11 +195,13 @@
       font-weight: 900; letter-spacing: -.02em;
       line-height: 1.15; margin-bottom: 16px;
     }
+    body.zh-visible h2 .zh { display: inline !important; }
     .section-sub {
       font-size: 17px; color: var(--muted);
       max-width: 560px; line-height: 1.55;
       margin-bottom: 52px;
     }
+    body.zh-visible .section-sub .zh { display: inline !important; }
 
     /* ── FEATURE CARDS ───────────────────────────────── */
     .features { background: var(--surface); }
@@ -200,9 +229,11 @@
     .feature-card h3 {
       font-size: 16px; font-weight: 800; margin-bottom: 8px;
     }
+    body.zh-visible .feature-card h3 .zh { display: inline !important; }
     .feature-card p {
       font-size: 14px; color: var(--muted); line-height: 1.55;
     }
+    .feature-card p.zh { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
 
     /* ── SCREENSHOTS ─────────────────────────────────── */
     .screenshots { background: var(--bg); }
@@ -234,6 +265,7 @@
       margin-top: 14px; font-size: 13px;
       color: var(--muted); text-align: center;
     }
+    .screenshot-caption .zh { margin-top: 4px; }
 
     /* ── HOW IT WORKS ────────────────────────────────── */
     .how { background: var(--white); }
@@ -265,6 +297,7 @@
       margin-bottom: 14px;
     }
     .step h3 { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+    body.zh-visible .step h3 .zh { display: inline !important; }
     .step p  { font-size: 13px; color: var(--muted); line-height: 1.5; }
 
     /* ── STACK ───────────────────────────────────────── */
@@ -283,8 +316,10 @@
       text-transform: uppercase; color: var(--accent);
       margin-bottom: 10px;
     }
+    .stack-card-label .zh { text-transform: none; letter-spacing: 0; }
     .stack-card h3 { font-size: 17px; font-weight: 900; margin-bottom: 6px; }
     .stack-card p  { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .stack-card p.zh { margin-top: 6px; }
 
     /* ── CTA ─────────────────────────────────────────── */
     .cta-section {
@@ -327,6 +362,7 @@
     CRM Sandbox
   </a>
   <div class="nav-links">
+    <button type="button" id="zh-toggle" title="切換中文">中文</button>
     <a class="btn btn-ghost" href="presentation.html" target="_blank">Presentation</a>
     <a class="btn btn-outline" href="https://github.com/Denis-RZ/hubspot-crm-suite" target="_blank" rel="noreferrer">GitHub ↗</a>
   </div>
@@ -335,15 +371,15 @@
 <!-- HERO -->
 <div class="hero">
   <div class="hero-eyebrow">Portfolio project</div>
-  <h1>A CRM that writes<br>to <em>real HubSpot</em> data</h1>
-  <p class="hero-sub">Not a mockup. Create a deal here and it appears in HubSpot. Pick the wrong stage and the API rejects it. The form shows exactly which field to fix.</p>
+  <h1>A CRM built<br>entirely <em>from scratch</em><span class="zh">完全從零開始打造的 CRM 系統</span></h1>
+  <p class="hero-sub">No external service, no API key, no signup. Deals, contacts, companies, and a manufacturing QA module all live in one self-built data layer. Clone it, run one command, it just works.<span class="zh">沒有外部服務、不需要 API 金鑰、不用註冊。交易、聯絡人、公司，以及製造品管模組，全部由自建的資料層管理。複製、執行一行指令，立即可用。</span></p>
   <div class="hero-actions">
     <a class="btn btn-hero-primary" href="presentation.html" target="_blank">View presentation →</a>
     <a class="btn btn-hero-secondary" href="https://github.com/Denis-RZ/hubspot-crm-suite" target="_blank" rel="noreferrer">Browse source</a>
   </div>
   <div class="hero-badges">
     <span class="badge">C# · ASP.NET Minimal API</span>
-    <span class="badge">HubSpot REST API v3</span>
+    <span class="badge">Zero external dependencies</span>
     <span class="badge">Native ES modules</span>
     <span class="badge">Zero bundler</span>
     <span class="badge">Runtime plugins</span>
@@ -354,10 +390,10 @@
 <!-- PROOF STRIP -->
 <div class="proof-strip">
   <div class="proof-strip-inner">
-    <div class="proof-item"><div class="proof-dot"></div><strong>Live API</strong> — real HubSpot sandbox, not fake data</div>
-    <div class="proof-item"><div class="proof-dot"></div><strong>Associations</strong> — correct type IDs, separate PUT calls</div>
-    <div class="proof-item"><div class="proof-dot"></div><strong>Plugins</strong> — drop a ZIP, new panel appears instantly</div>
-    <div class="proof-item"><div class="proof-dot"></div><strong>Errors</strong> — mapped to the exact form field</div>
+    <div class="proof-item"><div class="proof-dot"></div><span><strong>Own data layer</strong> — file-backed, survives restarts, not fake data<span class="zh">自建資料層 — 以檔案儲存，重啟後資料仍在，非虛擬資料</span></span></div>
+    <div class="proof-item"><div class="proof-dot"></div><span><strong>Associations</strong> — bidirectional links, tracked in the same store<span class="zh">關聯 — 雙向連結，儲存在同一份資料中</span></span></div>
+    <div class="proof-item"><div class="proof-dot"></div><span><strong>Plugins</strong> — drop a ZIP, new panel appears instantly<span class="zh">外掛系統 — 上傳 ZIP，新面板立即出現</span></span></div>
+    <div class="proof-item"><div class="proof-dot"></div><span><strong>Errors</strong> — mapped to the exact form field<span class="zh">錯誤處理 — 精準對應到欄位</span></span></div>
   </div>
 </div>
 
@@ -365,38 +401,44 @@
 <section class="features">
   <div class="container">
     <div class="section-label">What it demonstrates</div>
-    <h2>Built around real HubSpot behavior</h2>
-    <p class="section-sub">Every feature in this sandbox mirrors how production HubSpot integrations work.</p>
+    <h2>Built from scratch, no shortcuts<span class="zh">從零打造，沒有走捷徑</span></h2>
+    <p class="section-sub">Every feature here is code the author owns end to end — no third-party CRM behind the curtain.<span class="zh">這裡的每個功能都是作者從頭到尾自己寫的程式碼——背後沒有任何第三方 CRM。</span></p>
     <div class="feature-grid">
       <div class="feature-card">
         <div class="feature-icon">🔗</div>
-        <h3>Live HubSpot integration</h3>
-        <p>Records, pipelines, stages, lifecycle stages, and company industry options are all read directly from HubSpot — nothing is hardcoded.</p>
+        <h3>Self-built data layer<span class="zh">自建資料層</span></h3>
+        <p>Records, pipelines, stages, lifecycle stages, and industry options all come from code the author wrote — nothing is a mock, nothing depends on a third party.</p>
+        <p class="zh">交易資料、銷售流程、階段、生命週期階段與產業選項全部來自作者自己寫的程式碼——沒有模擬資料，不依賴任何第三方。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔄</div>
-        <h3>Correct association model</h3>
-        <p>Deals, contacts, and companies are separate objects. Relationships are created through the HubSpot association API — not as embedded fields.</p>
+        <h3>Correct association model<span class="zh">正確的關聯模型</span></h3>
+        <p>Deals, contacts, and companies are separate objects. Relationships are explicit, bidirectional links — not embedded fields.</p>
+        <p class="zh">交易、聯絡人與公司是各自獨立的物件。關聯以明確的雙向連結建立，而非內嵌欄位。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">▶</div>
-        <h3>Inline expand rows</h3>
+        <h3>Inline expand rows<span class="zh">列內展開</span></h3>
         <p>Click ▶ on any deal, contact, or company row to see linked records inline. No separate screen, no navigation away from the table.</p>
+        <p class="zh">點擊任一列的 ▶ 即可在原地查看關聯資料，不需切換畫面或離開表格。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📦</div>
-        <h3>Runtime plugin system</h3>
+        <h3>Runtime plugin system<span class="zh">執行期外掛系統</span></h3>
         <p>Upload a ZIP with a .plugin.dll and a .js module. A new panel appears in the workspace immediately — without touching the core codebase.</p>
+        <p class="zh">上傳包含 .plugin.dll 與 .js 模組的 ZIP 檔，新面板會立即出現在工作區——不需修改核心程式碼。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📋</div>
-        <h3>CSV import with preview</h3>
-        <p>Export records, edit the CSV, run validation row by row, then apply. Every row is checked against HubSpot rules before a single write happens.</p>
+        <div class="feature-icon">🏭</div>
+        <h3>Different-domain module<span class="zh">跨領域模組</span></h3>
+        <p>A manufacturing defect-tracking module (Defects / QA) runs on the same module contract as the CRM panels, with its own storage, and optionally cross-links to a Company record.</p>
+        <p class="zh">製造瑕疵追蹤模組（Defects / QA）採用與 CRM 面板相同的模組介面，擁有自己的資料儲存，並可選擇性地連結到 Company 紀錄。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">⚠️</div>
-        <h3>Field-level error handling</h3>
-        <p>When HubSpot rejects a value, the error is parsed once and shown on the exact field — not just a generic toast message.</p>
+        <h3>Field-level error handling<span class="zh">欄位層級錯誤處理</span></h3>
+        <p>When a write is rejected, the error is parsed once and shown on the exact field — not just a generic toast message.</p>
+        <p class="zh">當寫入被拒絕時，錯誤只會被解析一次，並顯示在正確的欄位上——不只是籠統的提示訊息。</p>
       </div>
     </div>
   </div>
@@ -406,8 +448,8 @@
 <section class="screenshots">
   <div class="container">
     <div class="section-label">The app</div>
-    <h2>Three panels, one sandbox</h2>
-    <p class="section-sub">Deals, Contacts, and Companies each have their own table, filters, pagination, inline edit, and expand row.</p>
+    <h2>Three panels, one sandbox<span class="zh">三個面板，一個沙盒</span></h2>
+    <p class="section-sub">Deals, Contacts, and Companies each have their own table, filters, pagination, inline edit, and expand row.<span class="zh">交易、聯絡人與公司各自擁有獨立的表格、篩選、分頁、行內編輯與展開功能。</span></p>
     <div class="screenshot-tabs">
       <button class="tab-btn active" onclick="showTab('deals', this)">Deals</button>
       <button class="tab-btn" onclick="showTab('contacts', this)">Contacts</button>
@@ -430,7 +472,7 @@
     <div class="screenshot-frame" id="tab-settings">
       <img src="screenshots/settings-panel.png" alt="Settings panel showing module order, plugin upload, and enable/disable toggles">
     </div>
-    <p class="screenshot-caption">All data shown is live from a HubSpot sandbox account.</p>
+    <p class="screenshot-caption">All data shown is generated by the app itself and persists to a local file — no external account involved.<span class="zh">畫面中顯示的資料皆由應用程式自行產生，並儲存於本機檔案——不涉及任何外部帳號。</span></p>
   </div>
 </section>
 
@@ -438,28 +480,32 @@
 <section class="how">
   <div class="container">
     <div class="section-label">Workflow</div>
-    <h2>The right order matters in CRM</h2>
-    <p class="section-sub">The sandbox enforces the same hierarchy as a real HubSpot account.</p>
+    <h2>The right order matters in CRM<span class="zh">CRM 中，正確的順序很重要</span></h2>
+    <p class="section-sub">The app enforces the same hierarchy a real CRM would.<span class="zh">此應用程式遵循與真實 CRM 相同的層級架構。</span></p>
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
-        <h3>Create company</h3>
-        <p>Industry options are loaded from HubSpot. The field only accepts valid values — no free text.</p>
+        <h3>Create company<span class="zh">建立公司</span></h3>
+        <p>Industry options come from a fixed set of values. The field only accepts valid values — no free text.</p>
+        <p class="zh">產業選項來自固定清單，欄位只接受有效值，不可自由輸入文字。</p>
       </div>
       <div class="step">
         <div class="step-num">2</div>
-        <h3>Create contact</h3>
-        <p>Email is the unique key. HubSpot rejects duplicates and the UI maps the error to the exact field.</p>
+        <h3>Create contact<span class="zh">建立聯絡人</span></h3>
+        <p>Email is the unique key. Duplicates are rejected and the UI maps the error to the exact field.</p>
+        <p class="zh">Email 是唯一識別鍵。重複資料會被拒絕，畫面會將錯誤對應到正確欄位。</p>
       </div>
       <div class="step">
         <div class="step-num">3</div>
-        <h3>Create deal</h3>
-        <p>Switch pipeline — stages reload instantly from HubSpot. Wrong stage for that pipeline? The API says no.</p>
+        <h3>Create deal<span class="zh">建立交易</span></h3>
+        <p>Switch pipeline — stages reload instantly. Wrong stage for that pipeline? Rejected, same as a real system.</p>
+        <p class="zh">切換銷售流程時，階段會立即重新載入。階段與流程不符？會被拒絕，就像真實系統一樣。</p>
       </div>
       <div class="step">
         <div class="step-num">4</div>
-        <h3>Associate &amp; audit</h3>
-        <p>Link from the ⋯ row menu. Expand ▶ to verify the link. The Audit plugin scores data quality.</p>
+        <h3>Associate &amp; cross-link<span class="zh">建立關聯與跨模組連結</span></h3>
+        <p>Link from the ⋯ row menu. Expand ▶ to verify the link. The Defects module can point at a Company the same way.</p>
+        <p class="zh">從列選單的 ⋯ 建立關聯，展開 ▶ 可驗證關聯是否成立。Defects 模組也能以同樣方式連結到 Company。</p>
       </div>
     </div>
   </div>
@@ -469,28 +515,32 @@
 <section class="stack-section">
   <div class="container">
     <div class="section-label">Tech stack</div>
-    <h2>Simple stack, real integration</h2>
-    <p class="section-sub">No ORM, no bundler, no framework overhead — just the right tools for the job.</p>
+    <h2>Simple stack, self-built end to end<span class="zh">簡單的架構，從頭到尾自己打造</span></h2>
+    <p class="section-sub">No ORM, no bundler, no framework overhead, no external service — just the right tools for the job.<span class="zh">沒有 ORM、沒有打包工具、沒有框架負擔、沒有外部服務——只用最適合的工具完成任務。</span></p>
     <div class="stack-grid">
       <div class="stack-card">
-        <div class="stack-card-label">Backend</div>
+        <div class="stack-card-label">Backend<span class="zh">後端</span></div>
         <h3>C# · ASP.NET</h3>
-        <p>Minimal API host. Each module registers its own routes. HubSpotDealsClient wraps all API calls with a plain HttpClient.</p>
+        <p>Minimal API host. Each module registers its own routes. LocalCrmStore persists everything to one JSON file.</p>
+        <p class="zh">Minimal API 架構。每個模組註冊自己的路由。LocalCrmStore 將所有資料儲存在單一 JSON 檔案中。</p>
       </div>
       <div class="stack-card">
-        <div class="stack-card-label">Frontend</div>
+        <div class="stack-card-label">Frontend<span class="zh">前端</span></div>
         <h3>Native ES modules</h3>
         <p>No React, no Vue, no bundler. Each panel is one JS module with renderPanel(), renderNav(), and mount().</p>
+        <p class="zh">沒有 React、沒有 Vue、沒有打包工具。每個面板都是一個獨立的 JS 模組，包含 renderPanel()、renderNav() 與 mount()。</p>
       </div>
       <div class="stack-card">
-        <div class="stack-card-label">Integration</div>
-        <h3>HubSpot API v3</h3>
-        <p>Private app token. Full CRUD for deals, contacts, companies. Separate association endpoints with fixed type IDs.</p>
+        <div class="stack-card-label">Data layer<span class="zh">資料層</span></div>
+        <h3>LocalCrmStore</h3>
+        <p>File-backed store. Full CRUD for deals, contacts, companies, defects. Associations tracked as simple bidirectional links — no tokens, no network calls.</p>
+        <p class="zh">以檔案為基礎的儲存層，完整支援交易、聯絡人、公司、瑕疵紀錄的 CRUD。關聯以簡單的雙向連結追蹤——不需金鑰，不需網路呼叫。</p>
       </div>
       <div class="stack-card">
-        <div class="stack-card-label">Plugins</div>
+        <div class="stack-card-label">Plugins<span class="zh">外掛</span></div>
         <h3>Runtime loading</h3>
         <p>ZIP upload → DLL + JS module registered at runtime. Actions dispatched through the host. No restart needed.</p>
+        <p class="zh">上傳 ZIP → 執行期註冊 DLL 與 JS 模組。動作透過 host 分派，不需重新啟動。</p>
       </div>
     </div>
   </div>
@@ -500,8 +550,8 @@
 <section class="cta-section">
   <div class="container">
     <div class="section-label" style="color:#ff9367;">Get started</div>
-    <h2>Run it against your own HubSpot sandbox</h2>
-    <p class="section-sub">Set your private app token, run one command, open localhost:5100.</p>
+    <h2>Clone it and run — nothing to configure<span class="zh">複製後直接執行——不需任何設定</span></h2>
+    <p class="section-sub">No account, no token, no signup. Run one command, open localhost:5100.<span class="zh">不需帳號、不需金鑰、不需註冊。執行一行指令，打開 localhost:5100。</span></p>
     <div class="cta-actions">
       <a class="btn btn-primary btn-hero-primary" href="presentation.html" target="_blank">View presentation →</a>
       <a class="btn btn-hero-secondary" href="https://github.com/Denis-RZ/hubspot-crm-suite" target="_blank" rel="noreferrer">Browse on GitHub</a>
@@ -511,7 +561,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <span>HubSpot CRM Sandbox — portfolio project</span>
+  <span>HubSpot CRM Sandbox — portfolio project<span class="zh">作品集專案</span></span>
   <span>
     <a href="https://github.com/Denis-RZ/hubspot-crm-suite" target="_blank" rel="noreferrer">github.com/Denis-RZ/hubspot-crm-suite</a>
   </span>
@@ -524,6 +574,54 @@
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
   }
+
+  document.getElementById('zh-toggle').addEventListener('click', () => {
+    const on = document.body.classList.toggle('zh-visible');
+    document.getElementById('zh-toggle').classList.toggle('active', on);
+  });
+
+  // Marks the English content that sits right before every .zh element as
+  // .en, so the topbar toggle is a real language switch (show one, hide the
+  // other) instead of stacking both languages at once. Handles two shapes:
+  // inline "text<span class=zh>" and block "<p>text</p><p class=zh>".
+  (function wrapEnglishBeforeZh() {
+    var BLOCK_TAGS = { P: 1, H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1, DIV: 1, LI: 1, TR: 1, TD: 1, TH: 1 };
+
+    document.querySelectorAll('.zh').forEach(zhEl => {
+      let firstMeaningful = zhEl.previousSibling;
+      while (firstMeaningful && firstMeaningful.nodeType === Node.TEXT_NODE && !firstMeaningful.textContent.trim()) {
+        firstMeaningful = firstMeaningful.previousSibling;
+      }
+      if (!firstMeaningful) return;
+
+      if (firstMeaningful.nodeType === Node.ELEMENT_NODE &&
+          (firstMeaningful.classList.contains('zh') || firstMeaningful.classList.contains('en'))) {
+        return;
+      }
+
+      if (firstMeaningful.nodeType === Node.ELEMENT_NODE && BLOCK_TAGS[firstMeaningful.tagName]) {
+        firstMeaningful.classList.add('en');
+        return;
+      }
+
+      const collected = [];
+      let node = zhEl.previousSibling;
+      while (node) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.classList.contains('zh') || node.classList.contains('en')) break;
+          if (BLOCK_TAGS[node.tagName]) break;
+        }
+        const prev = node.previousSibling;
+        collected.unshift(node);
+        node = prev;
+      }
+      if (collected.length === 0) return;
+      const enSpan = document.createElement('span');
+      enSpan.className = 'en';
+      collected.forEach(n => enSpan.appendChild(n));
+      zhEl.parentNode.insertBefore(enSpan, zhEl);
+    });
+  })();
 </script>
 </body>
 </html>

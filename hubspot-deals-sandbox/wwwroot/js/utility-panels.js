@@ -309,7 +309,7 @@ function associationMeta(objectType, record) {
     : [props.domain, props.city];
 
   const type = record?.type ?? record?.associationType ?? '';
-  return [...parts, type].filter(Boolean).join(' · ') || 'HubSpot association record';
+  return [...parts, type].filter(Boolean).join(' · ') || 'association record';
 }
 
 function renderAssociationStatus() {
@@ -320,7 +320,7 @@ function renderAssociationStatus() {
     container.innerHTML = `
       <strong>What changes when you link?</strong>
       <div>
-        HubSpot creates a relationship between one deal and an existing contact or company.
+        This creates a relationship between one deal and an existing contact or company.
         It does not copy fields, move records, or create duplicates.
       </div>
       <div class="helper" style="margin-top:10px">
@@ -339,7 +339,7 @@ function renderAssociationStatus() {
       <strong>${escapeHtml(_lastAssociationEvent.objectName || _lastAssociationEvent.objectId)}</strong>.
     </div>
     <div class="helper" style="margin-top:10px">
-      Impact: this record now appears in the list below and HubSpot treats both records as related.
+      Impact: this record now appears in the list below and both records are now treated as related.
     </div>`;
 }
 
@@ -482,7 +482,7 @@ async function previewBulkAutoLinks(button) {
 
   setLoading(button, true);
   _bulkLinkPlan = [];
-  renderBulkLinkEmptyState('Scanning existing HubSpot associations...');
+  renderBulkLinkEmptyState('Scanning existing associations...');
   const checks = state.deals.flatMap((deal, dealIndex) =>
     objectTypes.map(objectType => ({ deal, dealIndex, objectType })));
   let completed = 0;
@@ -882,18 +882,18 @@ function createLinksDescriptor() {
     label: 'Deal Links',
     renderNav: () => `
       <button class="nav-button" data-panel="links">
-        Deal Links <span class="nav-badge">↔</span>
+        Deal Links<span class="zh">交易關聯</span> <span class="nav-badge">↔</span>
       </button>`,
     renderPanel: () => `
       <section id="panel-links" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Deal Links — Associations Inspector</h2>
+            <h2>Deal Links — Associations Inspector<span class="zh">交易關聯 — 關聯檢視工具</span></h2>
             <p>This panel answers one question: which contacts and companies are attached
                to the selected deal? New links are created from any row's
-               <strong>Associate…</strong> action.</p>
+               <strong>Associate…</strong> action.<span class="zh">此面板回答一個問題：哪些聯絡人與公司連結到所選的交易？新的關聯可透過任一列的「Associate…」建立。</span></p>
           </div>
-          <div class="sub-badge">Shows link impact</div>
+          <div class="sub-badge">Shows link impact<span class="zh">顯示關聯結果</span></div>
         </div>
 
         <article class="section-card">
@@ -972,7 +972,7 @@ function createLinksDescriptor() {
         <details class="section-card" style="margin-top:18px">
           <summary><strong>Developer note</strong></summary>
           <p style="margin-top:12px">
-            HubSpot stores deal-contact and deal-company relationships as separate
+            The store keeps deal-contact and deal-company relationships as separate
             association records, not embedded fields on the deal object.
           </p>
           <div class="association-item">
@@ -1036,24 +1036,24 @@ function createImportDescriptor() {
     label: 'Import / Export',
     renderNav: () => `
       <button class="nav-button" data-panel="import">
-        Import / Export <span class="nav-badge">CSV</span>
+        Import / Export<span class="zh">匯入／匯出</span> <span class="nav-badge">CSV</span>
       </button>`,
     renderPanel: () => `
       <section id="panel-import" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Import / Export</h2>
+            <h2>Import / Export<span class="zh">匯入／匯出</span></h2>
             <p>Use CSV for round-trip data work. Export current records, edit them in a
-               spreadsheet flow, preview validation, then apply changes back to HubSpot.</p>
+               spreadsheet flow, preview validation, then apply changes.<span class="zh">使用 CSV 進行資料匯出入。匯出目前的紀錄、在試算表中編輯、預覽驗證結果，最後套用變更。</span></p>
           </div>
-          <div class="sub-badge">Preview before write</div>
+          <div class="sub-badge">Preview before write<span class="zh">寫入前先預覽</span></div>
         </div>
 
         <div class="grid-2">
           <article class="section-card">
-            <h3>Export CSV</h3>
+            <h3>Export CSV<span class="zh">匯出 CSV</span></h3>
             <p>Exports include <span class="mono">record_id</span>. Keep that column to
-               update existing HubSpot records later.</p>
+               update existing records later.</p>
             <div class="form-grid">
               <div>
                 <label for="export-object-type">Object type</label>
@@ -1072,7 +1072,7 @@ function createImportDescriptor() {
 
           <article class="section-card">
             <h3>Import CSV</h3>
-            <p>Preview validates headers, required fields, HubSpot pipeline/stage values,
+            <p>Preview validates headers, required fields, pipeline/stage values,
                company industry options, email format, dates, and numeric amounts before
                any write runs.</p>
             <div class="form-grid">
@@ -1087,11 +1087,11 @@ function createImportDescriptor() {
             </div>
             <div class="actions">
               <button id="btn-preview-import" class="button button-primary">Preview import</button>
-              <button id="btn-apply-import" class="button button-secondary" disabled>Apply to HubSpot</button>
+              <button id="btn-apply-import" class="button button-secondary" disabled>Apply changes</button>
             </div>
             <div class="helper">
               Blank <span class="mono">record_id</span> means create.
-              Existing <span class="mono">record_id</span> means update that HubSpot record.
+              Existing <span class="mono">record_id</span> means update that record.
             </div>
           </article>
         </div>
@@ -1204,18 +1204,18 @@ function createSettingsDescriptor(availableModules) {
     id: 'settings',
     renderNav: () => `
       <button class="nav-button" data-panel="settings">
-        Settings
+        Settings<span class="zh">設定</span>
       </button>`,
     renderPanel: () => `
       <section id="panel-settings" class="panel-card panel-hidden">
         <div class="panel-header">
           <div>
-            <h2>Module Settings</h2>
+            <h2>Module Settings<span class="zh">模組設定</span></h2>
             <p>Module choices are saved to <span class="mono">App_Data/runtime-settings.json</span>.
                Built-in module changes restart the app automatically. Uploaded plugins are listed
-               in the same module list and can be deleted immediately.</p>
+               in the same module list and can be deleted immediately.<span class="zh">模組設定會儲存到 App_Data/runtime-settings.json。變更內建模組會自動重新啟動應用程式。已上傳的外掛會列在同一份清單中，可立即刪除。</span></p>
           </div>
-          <div class="sub-badge">Modules + plugins</div>
+          <div class="sub-badge">Modules + plugins<span class="zh">模組與外掛</span></div>
         </div>
 
         <div class="grid-2">

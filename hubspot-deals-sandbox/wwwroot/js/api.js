@@ -34,7 +34,7 @@ export async function apiFetch(url, method = 'GET', body = null) {
 }
 
 // Extracts a human-readable message from an API error.
-// HubSpot errors are nested JSON strings, so we unwrap them here.
+// API errors are nested JSON strings, so we unwrap them here.
 export function normalizeApiError(error) {
   if (error instanceof ApiError) {
     if (error.fieldErrors.length) {
@@ -132,7 +132,7 @@ function collectEmbeddedJsonErrors(message, errors) {
       collectFieldErrors(JSON.parse(snippet), errors);
     }
     catch {
-      // Not all HubSpot messages contain valid embedded JSON.
+      // Not all messages contain valid embedded JSON.
     }
   });
 }

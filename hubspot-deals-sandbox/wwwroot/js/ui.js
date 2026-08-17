@@ -53,6 +53,7 @@ export function updateBadges(state) {
     deals: state.deals.length,
     contacts: state.contacts.length,
     companies: state.companies.length,
+    defects: state.defects.length,
   };
 
   document.querySelectorAll('[data-module-badge]').forEach(badge => {
@@ -274,7 +275,7 @@ function renderApiErrorSummary(root, error, fieldErrors, firstInvalid) {
   const summary = document.createElement('div');
   summary.className = 'api-error-summary';
   summary.innerHTML = `
-    <strong>HubSpot rejected this request.</strong>
+    <strong>The request was rejected.</strong>
     <span>${escapeHtml(error.message || 'Check the highlighted fields and try again.')}</span>
     ${fieldErrors.length ? `
       <ul>

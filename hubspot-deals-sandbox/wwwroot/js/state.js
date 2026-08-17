@@ -11,6 +11,10 @@ export const state = {
   companies:     [],
   companyIndustryOptions: [],
   contactLifecycleOptions: [],
+  defects:       [],
+  defectSeverityOptions: [],
+  defectStatusOptions: [],
+  defectSourceOptions: [],
   importPreview: null,
 
   // Which deals are currently shown in the table (may differ from state.deals when a search is active).

@@ -106,7 +106,7 @@ export function buildCsvRow(values) {
 
 // ── Per-row validation ────────────────────────────────────────────────────────
 
-// Validates a single parsed CSV row against HubSpot rules and the live pipeline list.
+// Validates a single parsed CSV row against field rules and the live pipeline list.
 // Returns a structured result used by the import preview table.
 export function validateImportRow(rawRow, objectType, rowNumber, state) {
   const errors   = [];
@@ -131,7 +131,7 @@ export function validateImportRow(rawRow, objectType, rowNumber, state) {
     if (rawRow.pipeline) {
       const pipeline = state.pipelines.find(p => p.id === rawRow.pipeline);
       if (!pipeline) {
-        errors.push(`pipeline "${rawRow.pipeline}" does not exist in HubSpot.`);
+        errors.push(`pipeline "${rawRow.pipeline}" does not exist.`);
       } else if (rawRow.dealstage && !pipeline.stages.find(s => s.id === rawRow.dealstage)) {
         errors.push(`dealstage "${rawRow.dealstage}" not found in pipeline "${rawRow.pipeline}".`);
       }
@@ -151,7 +151,7 @@ export function validateImportRow(rawRow, objectType, rowNumber, state) {
       errors.push('name is required.');
     }
     if (rawRow.industry && !INDUSTRY_OPTIONS.find(o => o.value === rawRow.industry)) {
-      warnings.push(`"${rawRow.industry}" is not a standard HubSpot industry value.`);
+      warnings.push(`"${rawRow.industry}" is not a standard industry value.`);
     }
   }
 

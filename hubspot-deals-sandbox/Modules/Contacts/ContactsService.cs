@@ -1,13 +1,13 @@
-using HubSpotDealsSandbox.HubSpot;
+using HubSpotDealsSandbox.Data;
 using HubSpotDealsSandbox.HubSpot.Models;
 
 namespace HubSpotDealsSandbox.Modules.Contacts;
 
 public sealed class ContactsService
 {
-    private readonly HubSpotDealsClient _client;
+    private readonly LocalCrmStore _client;
 
-    public ContactsService(HubSpotDealsClient client)
+    public ContactsService(LocalCrmStore client)
     {
         _client = client;
     }
