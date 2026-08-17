@@ -37,8 +37,11 @@ export function renderPaginator(containerId, total, currentPage, pageKey) {
     <span class="page-info">${currentPage} / ${maxPage}</span>
     <button class="page-btn" data-action="goto-page" data-page="${currentPage + 1}" ${currentPage >= maxPage ? 'disabled' : ''}>→</button>` : '';
 
+  // <option> can only hold text, so it can't use the <span class="zh">
+  // toggle other elements use - show both languages together here since
+  // it's a small, low-conflict control (a page-size number).
   const sizeOptions = PAGE_SIZES.map(s =>
-    `<option value="${s}" ${s === pageSize ? 'selected' : ''}>${s} per page</option>`
+    `<option value="${s}" ${s === pageSize ? 'selected' : ''}>${s} per page · 每頁 ${s} 筆</option>`
   ).join('');
 
   el.innerHTML = `

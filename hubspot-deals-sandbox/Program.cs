@@ -28,12 +28,22 @@ async Task<int> RunAsync(string[] args)
         return 0;
     }
 
-    var client = new LocalCrmStore(GetCrmStorePath(Directory.GetCurrentDirectory()));
-
     var command = args.Length == 0 ? "web" : args[0].ToLowerInvariant();
 
     try
     {
+        if (command == "web")
+        {
+            await RunWebAsync();
+            return 0;
+        }
+
+        // Only the CLI subcommands below need their own store instance -
+        // "web" builds its own through DI. Constructing this inside the try
+        // means a corrupt or unreadable data file is reported as a normal
+        // error instead of an unhandled crash.
+        var client = new LocalCrmStore(GetCrmStorePath(Directory.GetCurrentDirectory()));
+
         switch (command)
         {
             case "list":
@@ -51,10 +61,6 @@ async Task<int> RunAsync(string[] args)
             case "update-from-file":
                 await UpdateDealFromFileAsync(client, args);
                 break;
-
-            case "web":
-                await RunWebAsync();
-                return 0;
 
             case "search":
                 await SearchDealsAsync(client, args);

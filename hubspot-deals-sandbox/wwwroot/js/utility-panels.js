@@ -16,6 +16,23 @@ const DISABLED_UTILITY_KEY  = 'crm-disabled-utility';
 const UTILITY_ORDER_KEY     = 'crm-utility-order';
 const NAV_ORDER_KEY         = 'crm-nav-order';
 
+// Built-in module labels come from the backend as plain English (m.label).
+// This maps the known ids to a Chinese label appended as a toggleable span.
+const MODULE_LABEL_ZH = {
+  deals: '交易',
+  contacts: '聯絡人',
+  companies: '公司',
+  defects: '瑕疵記錄',
+  links: '交易關聯',
+  import: '匯入／匯出',
+  settings: '設定',
+};
+
+const OBJECT_TYPE_LABEL_ZH = {
+  contacts: '聯絡人',
+  companies: '公司',
+};
+
 const _descriptorCache = new Map(); // id → utility descriptor
 let _lastAssociationEvent = null;
 let _bulkLinkPlan = [];
@@ -47,12 +64,13 @@ function getStoredNavOrderValue(id, fallback) {
 
 function buildUtilityRow(desc, enabled) {
   const navOrder = getStoredNavOrderValue(desc.id, desc._navOrder ?? 9500);
+  const zhLabel = MODULE_LABEL_ZH[desc.id];
   return `
     <div class="module-toggle-row" data-utility-id="${desc.id}" data-nav-order="${navOrder}">
       <input type="checkbox" class="module-checkbox utility-toggle" value="${desc.id}" ${enabled ? 'checked' : ''}>
       <span class="module-toggle-label">
-        ${desc.label ?? desc.id}
-        <span class="utility-badge">Auto</span>
+        ${desc.label ?? desc.id}${zhLabel ? `<span class="zh">${zhLabel}</span>` : ''}
+        <span class="utility-badge">Auto<span class="zh">自動</span></span>
       </span>
       <div class="module-order-btns">
         <button class="module-order-btn" data-dir="up">↑</button>
@@ -318,28 +336,29 @@ function renderAssociationStatus() {
 
   if (!_lastAssociationEvent) {
     container.innerHTML = `
-      <strong>What changes when you link?</strong>
+      <strong>What changes when you link?<span class="zh">建立關聯後會發生什麼？</span></strong>
       <div>
         This creates a relationship between one deal and an existing contact or company.
-        It does not copy fields, move records, or create duplicates.
+        It does not copy fields, move records, or create duplicates.<span class="zh">這會在一筆交易與現有的聯絡人或公司之間建立關係，不會複製欄位、搬移紀錄，也不會建立重複的紀錄。</span>
       </div>
       <div class="helper" style="margin-top:10px">
         Use <strong>Associate…</strong> in any row menu. After success, this panel selects
-        that deal automatically and shows the linked records below.
+        that deal automatically and shows the linked records below.<span class="zh">在任一列的選單中使用「建立關聯…」。成功後，此面板會自動選取該交易並在下方顯示已關聯的紀錄。</span>
       </div>`;
     return;
   }
 
   const singular = associationSingular(_lastAssociationEvent.objectType);
+  const singularZh = OBJECT_TYPE_LABEL_ZH[_lastAssociationEvent.objectType] || singular;
   container.innerHTML = `
-    <strong>Last link created</strong>
+    <strong>Last link created<span class="zh">最近建立的關聯</span></strong>
     <div>
       Deal <strong>${escapeHtml(_lastAssociationEvent.dealName || _lastAssociationEvent.dealId)}</strong>
       is now linked to ${singular}
-      <strong>${escapeHtml(_lastAssociationEvent.objectName || _lastAssociationEvent.objectId)}</strong>.
+      <strong>${escapeHtml(_lastAssociationEvent.objectName || _lastAssociationEvent.objectId)}</strong>.<span class="zh">交易「${escapeHtml(_lastAssociationEvent.dealName || _lastAssociationEvent.dealId)}」現已連結到${singularZh}「${escapeHtml(_lastAssociationEvent.objectName || _lastAssociationEvent.objectId)}」。</span>
     </div>
     <div class="helper" style="margin-top:10px">
-      Impact: this record now appears in the list below and both records are now treated as related.
+      Impact: this record now appears in the list below and both records are now treated as related.<span class="zh">影響：此紀錄現已出現在下方清單中，兩筆紀錄現在視為相關聯。</span>
     </div>`;
 }
 
@@ -351,6 +370,14 @@ function renderAssociationMessage(objectType, message, tone = '') {
   container.innerHTML = `<div class="empty-note"${style}>${escapeHtml(message)}</div>`;
 }
 
+function renderAssociationMessageHtml(objectType, html, tone = '') {
+  const container = getAssociationOutput(objectType);
+  if (!container) return;
+
+  const style = tone === 'error' ? ' style="color:var(--danger)"' : '';
+  container.innerHTML = `<div class="empty-note"${style}>${html}</div>`;
+}
+
 function renderAssociationRecords(objectType, records) {
   const container = getAssociationOutput(objectType);
   if (!container) return;
@@ -358,12 +385,13 @@ function renderAssociationRecords(objectType, records) {
   const rows = getAssociationRows(records);
   if (!rows.length) {
     const singular = associationSingular(objectType);
+    const zh = OBJECT_TYPE_LABEL_ZH[objectType] || objectType;
     container.innerHTML = `
       <div class="empty-note">
-        No linked ${objectType} yet.
+        No linked ${objectType} yet.<span class="zh">尚未關聯任何${zh}。</span>
         <div class="actions" style="margin-top:10px">
           <button class="button button-secondary" data-associate-empty="${objectType}">
-            Associate ${singular}
+            Associate ${singular}<span class="zh">建立${zh}關聯</span>
           </button>
         </div>
       </div>`;
@@ -386,14 +414,14 @@ function getBulkLinkObjectTypes() {
     state.enabledModules.includes(objectType) && getRecords(objectType).length > 0);
 }
 
-function renderBulkLinkEmptyState(message = 'Preview scans every deal and shows exactly what would be linked before any write happens.') {
+function renderBulkLinkEmptyState(message) {
   const body = document.getElementById('bulk-link-body');
   const count = document.getElementById('bulk-link-count');
   const runButton = document.getElementById('btn-run-auto-links');
 
   if (count) {
     count.className = 'pill';
-    count.textContent = 'No preview yet';
+    count.innerHTML = 'No preview yet<span class="zh">尚無預覽</span>';
   }
 
   if (runButton) {
@@ -401,9 +429,12 @@ function renderBulkLinkEmptyState(message = 'Preview scans every deal and shows 
   }
 
   if (!body) return;
+  const html = message
+    ? escapeHtml(message)
+    : 'Preview scans every deal and shows exactly what would be linked before any write happens.<span class="zh">預覽會掃描每一筆交易，並在寫入前準確顯示將建立哪些關聯。</span>';
   body.innerHTML = `<tr><td colspan="4"><div class="empty-state">
     <div class="icon" style="font-size:22px;font-family:monospace;font-weight:800">↔</div>
-    <p>${escapeHtml(message)}</p>
+    <p>${html}</p>
   </div></td></tr>`;
 }
 
@@ -611,7 +642,8 @@ async function loadAssociations(objectType, button, options = {}) {
   const { quiet = false, updateResult = true } = options;
   const dealId = getSelectedAssociationDealId();
   if (!dealId) {
-    renderAssociationMessage(objectType, `Select a deal to see linked ${objectType}.`);
+    const zh = OBJECT_TYPE_LABEL_ZH[objectType] || objectType;
+    renderAssociationMessageHtml(objectType, `Select a deal to see linked ${objectType}.<span class="zh">請選擇交易以檢視已關聯的${zh}。</span>`);
     if (!quiet) toast('Select a deal first.', 'error');
     return null;
   }
@@ -644,8 +676,10 @@ async function loadSelectedDealAssociations() {
 
   const dealId = getSelectedAssociationDealId();
   if (!dealId) {
-    objectTypes.forEach(objectType =>
-      renderAssociationMessage(objectType, `Select a deal to see linked ${objectType}.`));
+    objectTypes.forEach(objectType => {
+      const zh = OBJECT_TYPE_LABEL_ZH[objectType] || objectType;
+      renderAssociationMessageHtml(objectType, `Select a deal to see linked ${objectType}.<span class="zh">請選擇交易以檢視已關聯的${zh}。</span>`);
+    });
     return;
   }
 
@@ -761,7 +795,7 @@ async function previewImport(button) {
     const { rows: rawRows } = parseCSV(text);
 
     if (rawRows.length === 0) {
-      renderImportEmptyState('The file has no data rows.');
+      renderImportEmptyState('The file has no data rows.<span class="zh">檔案沒有資料列。</span>');
       toast('File is empty or headers only.', 'info');
       return;
     }
@@ -798,7 +832,7 @@ async function previewImport(button) {
     }
 
     setError(error.message);
-    renderImportEmptyState('Preview failed. See the API Result panel.');
+    renderImportEmptyState('Preview failed. See the API Result panel.<span class="zh">預覽失敗，詳情請見 API 結果面板。</span>');
     toast('Preview failed', 'error');
   }
   finally {
@@ -865,7 +899,7 @@ async function applyImport(button) {
     applyButton.disabled = true;
   }
 
-  renderImportEmptyState('Import finished. Upload another CSV to preview the next batch.');
+  renderImportEmptyState('Import finished. Upload another CSV to preview the next batch.<span class="zh">匯入完成。上傳另一個 CSV 以預覽下一批資料。</span>');
   setResult({ succeeded, failed, results }, failed === 0);
   toast(
     `Import done: ${succeeded} created${failed ? `, ${failed} failed` : ''}`,
@@ -891,62 +925,62 @@ function createLinksDescriptor() {
             <h2>Deal Links — Associations Inspector<span class="zh">交易關聯 — 關聯檢視工具</span></h2>
             <p>This panel answers one question: which contacts and companies are attached
                to the selected deal? New links are created from any row's
-               <strong>Associate…</strong> action.<span class="zh">此面板回答一個問題：哪些聯絡人與公司連結到所選的交易？新的關聯可透過任一列的「Associate…」建立。</span></p>
+               <strong>Associate…</strong> action.<span class="zh">此面板回答一個問題：哪些聯絡人與公司連結到所選的交易？新的關聯可透過任一列的「建立關聯…」建立。</span></p>
           </div>
           <div class="sub-badge">Shows link impact<span class="zh">顯示關聯結果</span></div>
         </div>
 
         <article class="section-card">
-          <h3>Result of linking</h3>
+          <h3>Result of linking<span class="zh">關聯結果</span></h3>
           <div id="association-status" class="association-item"></div>
         </article>
 
         <article class="section-card" style="margin-top:18px">
-          <h3>Current deal</h3>
+          <h3>Current deal<span class="zh">目前交易</span></h3>
           <p>This is auto-selected after a successful <strong>Associate…</strong> action.
-             You only change it manually when you want to inspect another deal.</p>
+             You only change it manually when you want to inspect another deal.<span class="zh">成功執行「建立關聯…」後會自動選取。只有在想檢視其他交易時才需要手動變更。</span></p>
           <div class="form-grid">
             <div>
-              <label for="association-deal">Inspect links for</label>
+              <label for="association-deal">Inspect links for<span class="zh">檢視關聯對象</span></label>
               <select id="association-deal"></select>
             </div>
           </div>
         </article>
 
         <article class="section-card" style="margin-top:18px">
-          <h3>Auto-link missing deals</h3>
+          <h3>Auto-link missing deals<span class="zh">自動關聯未連結的交易</span></h3>
           <p>Bulk mode scans every deal, skips existing links, and proposes one contact
-             and one company for deals that are still isolated. Preview first, then write.</p>
+             and one company for deals that are still isolated. Preview first, then write.<span class="zh">批次模式會掃描每一筆交易，略過已有關聯的項目，並為尚未連結的交易各建議一位聯絡人與一間公司。請先預覽再寫入。</span></p>
           <div class="actions">
             <button id="btn-preview-auto-links" class="button button-secondary">
-              Preview auto-link plan
+              Preview auto-link plan<span class="zh">預覽自動關聯計畫</span>
             </button>
             <button id="btn-run-auto-links" class="button button-primary" disabled>
-              Run auto-link
+              Run auto-link<span class="zh">執行自動關聯</span>
             </button>
           </div>
           <div class="helper">
             Matching strategy: round-robin across current contacts and companies so the
-            sandbox data becomes connected without duplicating existing associations.
+            sandbox data becomes connected without duplicating existing associations.<span class="zh">配對策略：在現有聯絡人與公司之間輪流分配，讓範例資料互相連結，且不會重複建立既有的關聯。</span>
           </div>
         </article>
 
         <div class="association-grid" style="margin-top:18px">
           ${hasContacts ? `
           <article class="section-card">
-            <h3>Linked contacts</h3>
-            <p>People associated with the selected deal.</p>
+            <h3>Linked contacts<span class="zh">已關聯的聯絡人</span></h3>
+            <p>People associated with the selected deal.<span class="zh">與所選交易相關聯的人員。</span></p>
             <div id="association-contacts-output" class="association-list">
-              <div class="empty-note">Select a deal to see linked contacts.</div>
+              <div class="empty-note">Select a deal to see linked contacts.<span class="zh">請選擇交易以檢視已關聯的聯絡人。</span></div>
             </div>
           </article>` : ''}
 
           ${hasCompanies ? `
           <article class="section-card">
-            <h3>Linked companies</h3>
-            <p>Companies associated with the selected deal.</p>
+            <h3>Linked companies<span class="zh">已關聯的公司</span></h3>
+            <p>Companies associated with the selected deal.<span class="zh">與所選交易相關聯的公司。</span></p>
             <div id="association-companies-output" class="association-list">
-              <div class="empty-note">Select a deal to see linked companies.</div>
+              <div class="empty-note">Select a deal to see linked companies.<span class="zh">請選擇交易以檢視已關聯的公司。</span></div>
             </div>
           </article>` : ''}
         </div>
@@ -954,15 +988,15 @@ function createLinksDescriptor() {
         <article class="table-card" style="margin-top:18px">
           <div class="table-toolbar">
             <div>
-              <h3>Auto-link results</h3>
-              <p>Each row shows whether a deal was skipped, planned, created, or failed.</p>
+              <h3>Auto-link results<span class="zh">自動關聯結果</span></h3>
+              <p>Each row shows whether a deal was skipped, planned, created, or failed.<span class="zh">每一列顯示該交易是被略過、已規劃、已建立，還是失敗。</span></p>
             </div>
-            <span id="bulk-link-count" class="pill">No preview yet</span>
+            <span id="bulk-link-count" class="pill">No preview yet<span class="zh">尚無預覽</span></span>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Deal</th><th>Target</th><th>Action</th><th>Status</th></tr>
+                <tr><th>Deal<span class="zh">交易</span></th><th>Target<span class="zh">目標</span></th><th>Action<span class="zh">動作</span></th><th>Status<span class="zh">狀態</span></th></tr>
               </thead>
               <tbody id="bulk-link-body"></tbody>
             </table>
@@ -970,16 +1004,16 @@ function createLinksDescriptor() {
         </article>
 
         <details class="section-card" style="margin-top:18px">
-          <summary><strong>Developer note</strong></summary>
+          <summary><strong>Developer note<span class="zh">開發者說明</span></strong></summary>
           <p style="margin-top:12px">
             The store keeps deal-contact and deal-company relationships as separate
-            association records, not embedded fields on the deal object.
+            association records, not embedded fields on the deal object.<span class="zh">資料儲存區會將「交易—聯絡人」與「交易—公司」的關係保存為獨立的關聯記錄，而不是內嵌在交易物件中的欄位。</span>
           </p>
           <div class="association-item">
-            <strong>API behavior</strong>
+            <strong>API behavior<span class="zh">API 行為</span></strong>
             This app creates links through <span class="mono">POST /api/associate</span>
             and reads them through
-            <span class="mono">GET /api/associations/{dealId}/{objectType}</span>.
+            <span class="mono">GET /api/associations/{dealId}/{objectType}</span>.<span class="zh">本應用程式透過 <span class="mono">POST /api/associate</span> 建立關聯，並透過 <span class="mono">GET /api/associations/{dealId}/{objectType}</span> 讀取關聯。</span>
           </div>
         </details>
       </section>`,
@@ -1053,45 +1087,45 @@ function createImportDescriptor() {
           <article class="section-card">
             <h3>Export CSV<span class="zh">匯出 CSV</span></h3>
             <p>Exports include <span class="mono">record_id</span>. Keep that column to
-               update existing records later.</p>
+               update existing records later.<span class="zh">匯出檔案包含 <span class="mono">record_id</span>。保留該欄位以便日後更新現有紀錄。</span></p>
             <div class="form-grid">
               <div>
-                <label for="export-object-type">Object type</label>
+                <label for="export-object-type">Object type<span class="zh">物件類型</span></label>
                 <select id="export-object-type">${objectTypeOptions}</select>
               </div>
             </div>
             <div class="actions">
-              <button id="btn-export-data" class="button button-primary">Download export</button>
-              <button id="btn-download-template" class="button button-secondary">Download template</button>
+              <button id="btn-export-data" class="button button-primary">Download export<span class="zh">下載匯出檔</span></button>
+              <button id="btn-download-template" class="button button-secondary">Download template<span class="zh">下載範本</span></button>
             </div>
             <div class="helper">
               Professional round-trip pattern: export - edit - preview - apply.
-              Template downloads only the approved columns.
+              Template downloads only the approved columns.<span class="zh">標準流程：匯出 → 編輯 → 預覽 → 套用。範本只會下載已核准的欄位。</span>
             </div>
           </article>
 
           <article class="section-card">
-            <h3>Import CSV</h3>
+            <h3>Import CSV<span class="zh">匯入 CSV</span></h3>
             <p>Preview validates headers, required fields, pipeline/stage values,
                company industry options, email format, dates, and numeric amounts before
-               any write runs.</p>
+               any write runs.<span class="zh">預覽會在寫入前驗證標頭、必填欄位、銷售階段值、公司產業選項、電子郵件格式、日期與數值金額。</span></p>
             <div class="form-grid">
               <div>
-                <label for="import-object-type">Object type</label>
+                <label for="import-object-type">Object type<span class="zh">物件類型</span></label>
                 <select id="import-object-type">${objectTypeOptions}</select>
               </div>
               <div>
-                <label for="import-file">CSV file</label>
+                <label for="import-file">CSV file<span class="zh">CSV 檔案</span></label>
                 <input id="import-file" type="file" accept=".csv,text/csv">
               </div>
             </div>
             <div class="actions">
-              <button id="btn-preview-import" class="button button-primary">Preview import</button>
-              <button id="btn-apply-import" class="button button-secondary" disabled>Apply changes</button>
+              <button id="btn-preview-import" class="button button-primary">Preview import<span class="zh">預覽匯入</span></button>
+              <button id="btn-apply-import" class="button button-secondary" disabled>Apply changes<span class="zh">套用變更</span></button>
             </div>
             <div class="helper">
               Blank <span class="mono">record_id</span> means create.
-              Existing <span class="mono">record_id</span> means update that record.
+              Existing <span class="mono">record_id</span> means update that record.<span class="zh">留空 <span class="mono">record_id</span> 表示新增；填入現有的 <span class="mono">record_id</span> 表示更新該紀錄。</span>
             </div>
           </article>
         </div>
@@ -1099,15 +1133,15 @@ function createImportDescriptor() {
         <article class="table-card" style="margin-top: 18px;">
           <div class="table-toolbar">
             <div>
-              <h3>Import Preview</h3>
-              <p>Every row must be valid before the apply button is enabled.</p>
+              <h3>Import Preview<span class="zh">匯入預覽</span></h3>
+              <p>Every row must be valid before the apply button is enabled.<span class="zh">所有列都必須驗證通過，套用按鈕才會啟用。</span></p>
             </div>
-            <span id="import-preview-count" class="pill">No preview yet</span>
+            <span id="import-preview-count" class="pill">No preview yet<span class="zh">尚無預覽</span></span>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Row</th><th>Action</th><th>Record ID</th><th>Status</th><th>Details</th></tr>
+                <tr><th>Row<span class="zh">列</span></th><th>Action<span class="zh">動作</span></th><th>Record ID<span class="zh">紀錄 ID</span></th><th>Status<span class="zh">狀態</span></th><th>Details<span class="zh">詳細資訊</span></th></tr>
               </thead>
               <tbody id="import-preview-body"></tbody>
             </table>
@@ -1220,9 +1254,9 @@ function createSettingsDescriptor(availableModules) {
 
         <div class="grid-2">
           <article class="section-card">
-            <h3>Modules</h3>
+            <h3>Modules<span class="zh">模組</span></h3>
             <p>One list for system modules and uploaded plugins. Plugins stay enabled
-               while installed; use Delete to uninstall them.</p>
+               while installed; use Delete to uninstall them.<span class="zh">系統模組與已上傳外掛共用同一份清單。外掛安裝後預設啟用，使用刪除可解除安裝。</span></p>
             <div id="module-order-list" class="module-toggle-list">
               ${availableModules.map((m, i) => {
                 const enabledIndex = availableModules
@@ -1232,10 +1266,11 @@ function createSettingsDescriptor(availableModules) {
                 const fallbackOrder = m.enabled ? enabledIndex * 100 : 90_000 + i;
                 const storedIndex = storedNavOrder.indexOf(m.id);
                 const navOrder = storedIndex >= 0 ? storedIndex * 10 : fallbackOrder;
+                const zhLabel = MODULE_LABEL_ZH[m.id];
                 return `
                 <div class="module-toggle-row" data-module-id="${m.id}" data-nav-order="${navOrder}">
                   <input type="checkbox" class="module-checkbox" value="${m.id}" ${m.enabled ? 'checked' : ''}>
-                  <span class="module-toggle-label">${m.label}</span>
+                  <span class="module-toggle-label">${m.label}${zhLabel ? `<span class="zh">${zhLabel}</span>` : ''}</span>
                   <div class="module-order-btns">
                     <button class="module-order-btn" data-dir="up"   ${i === 0 ? 'disabled' : ''}>↑</button>
                     <button class="module-order-btn" data-dir="down" ${i === availableModules.length - 1 ? 'disabled' : ''}>↓</button>
@@ -1246,22 +1281,22 @@ function createSettingsDescriptor(availableModules) {
               <div id="utility-panel-list"></div>
             </div>
             <div class="actions" style="margin-top:20px">
-              <button id="btn-save-modules" class="button button-primary">Save changes</button>
+              <button id="btn-save-modules" class="button button-primary">Save changes<span class="zh">儲存變更</span></button>
             </div>
-            <div class="helper">After saving, the app restarts automatically. If IIS blocks the write, the error will name the folder that needs permission.</div>
+            <div class="helper">After saving, the app restarts automatically. If IIS blocks the write, the error will name the folder that needs permission.<span class="zh">儲存後應用程式會自動重新啟動。若 IIS 阻擋寫入，錯誤訊息會指出需要權限的資料夾。</span></div>
           </article>
 
           <article class="section-card">
-            <h3>Install Plugin</h3>
+            <h3>Install Plugin<span class="zh">安裝外掛</span></h3>
             <p>Upload a <span class="mono">.zip</span> containing a
                <span class="mono">*.plugin.dll</span> and a matching
                <span class="mono">&lt;id&gt;.js</span> frontend module.
-               The plugin loads instantly — no server restart required.</p>
+               The plugin loads instantly — no server restart required.<span class="zh">上傳包含 *.plugin.dll 與對應 &lt;id&gt;.js 前端模組的 .zip 檔，外掛會立即載入，不需重新啟動伺服器。</span></p>
             <div style="display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap">
               <input id="plugin-file-input" type="file" accept=".zip"
                 style="flex:1;min-width:0;padding:8px;border:1px solid var(--line);
                        border-radius:10px;font:inherit;font-size:13px">
-              <button id="btn-upload-plugin" class="button button-primary">Upload</button>
+              <button id="btn-upload-plugin" class="button button-primary">Upload<span class="zh">上傳</span></button>
             </div>
             <div id="plugin-upload-result" style="margin-top:10px;font-size:13px"></div>
           </article>

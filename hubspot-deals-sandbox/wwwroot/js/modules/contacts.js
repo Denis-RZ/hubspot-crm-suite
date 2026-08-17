@@ -45,7 +45,7 @@ async function loadContactDealAssociations(contactId) {
 }
 
 function isValidEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Enter a valid email address.';
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Enter a valid email address.<span class="zh">請輸入有效的電子郵件地址。</span>';
 }
 
 function resetContactForm() {
@@ -120,7 +120,7 @@ async function deleteContact(contactId, button) {
     || [contact?.properties?.firstname, contact?.properties?.lastname].filter(Boolean).join(' ')
     || contactId;
 
-  if (!confirm(`Delete contact "${label}"? This cannot be undone.`)) {
+  if (!confirm(`Delete contact "${label}"? This cannot be undone.\n刪除聯絡人「${label}」？此操作無法復原。`)) {
     return;
   }
 
@@ -327,7 +327,7 @@ export default {
                 <input id="contact-lastname" type="text" placeholder="Chen">
               </div>
               <div>
-                <label for="contact-email">Email<span class="zh">電子郵件</span> <span class="label-hint">required</span></label>
+                <label for="contact-email">Email<span class="zh">電子郵件</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
                 <input id="contact-email" type="email" placeholder="alice@example.com">
                 <div class="field-error" id="err-contact-email">Email is required.</div>
               </div>
@@ -350,7 +350,7 @@ export default {
             <div class="table-toolbar">
               <div>
                 <h3>Contact Records<span class="zh">聯絡人紀錄</span></h3>
-                <p>Use "Use in Links" to pre-select for association.<span class="zh">使用「Use in Links」預先選取以便建立關聯。</span></p>
+                <p>Use ⋯ → <strong>Associate…</strong> to link a contact to a deal.<span class="zh">使用 ⋯ → 「建立關聯…」將聯絡人連結到交易。</span></p>
               </div>
               <span id="contact-count" class="pill">0 contacts</span>
             </div>

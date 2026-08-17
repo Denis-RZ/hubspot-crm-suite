@@ -544,28 +544,48 @@ public sealed class LocalCrmStore
             return false;
         }
 
+        // The file exists. From here on, any failure is reported loudly instead
+        // of being swallowed - silently falling back to a fresh seed would look
+        // like the app "worked" while quietly discarding whatever was on disk.
+        string json;
         try
         {
-            var json = File.ReadAllText(_filePath);
-            var snapshot = JsonSerializer.Deserialize<StoreSnapshot>(json, FileJsonOptions);
-            if (snapshot is null)
-            {
-                return false;
-            }
-
-            foreach (var d in snapshot.Deals) _deals[d.Id] = d;
-            foreach (var c in snapshot.Contacts) _contacts[c.Id] = c;
-            foreach (var c in snapshot.Companies) _companies[c.Id] = c;
-            _associations.AddRange(snapshot.Associations);
-            _nextDealId = snapshot.NextDealId;
-            _nextContactId = snapshot.NextContactId;
-            _nextCompanyId = snapshot.NextCompanyId;
-            return true;
+            json = File.ReadAllText(_filePath);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new InvalidOperationException(
+                $"Found '{_filePath}' but could not read it. Check that the application " +
+                $"has read permission to this folder (App_Data), or check for a lock from " +
+                $"another process. Underlying error: {ex.Message}", ex);
+        }
+
+        StoreSnapshot? snapshot;
+        try
+        {
+            snapshot = JsonSerializer.Deserialize<StoreSnapshot>(json, FileJsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"'{_filePath}' exists but is not valid JSON - it may be corrupted or was " +
+                $"hand-edited incorrectly. Fix it, restore it from a backup, or delete it to " +
+                $"start fresh (this discards existing data). Underlying error: {ex.Message}", ex);
+        }
+
+        if (snapshot is null)
         {
             return false;
         }
+
+        foreach (var d in snapshot.Deals) _deals[d.Id] = d;
+        foreach (var c in snapshot.Contacts) _contacts[c.Id] = c;
+        foreach (var c in snapshot.Companies) _companies[c.Id] = c;
+        _associations.AddRange(snapshot.Associations);
+        _nextDealId = snapshot.NextDealId;
+        _nextContactId = snapshot.NextContactId;
+        _nextCompanyId = snapshot.NextCompanyId;
+        return true;
     }
 
     private void SaveToFile()
@@ -582,13 +602,25 @@ public sealed class LocalCrmStore
         };
 
         var directory = Path.GetDirectoryName(_filePath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         var json = JsonSerializer.Serialize(snapshot, FileJsonOptions);
-        File.WriteAllText(_filePath, json);
+
+        try
+        {
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(_filePath, json);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new InvalidOperationException(
+                $"Could not save to '{_filePath}'. Grant write permission to this folder " +
+                $"(App_Data) for the account running the app - on IIS that is usually the " +
+                $"application pool identity. The change was not saved. " +
+                $"Underlying error: {ex.Message}", ex);
+        }
     }
 
     private sealed record AssociationLink(string FromType, string FromId, string ToType, string ToId);

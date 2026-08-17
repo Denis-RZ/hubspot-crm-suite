@@ -121,7 +121,7 @@ export function validateRequired(fields) {
     let errorMessage = '';
 
     if (!fieldValid) {
-      errorMessage = err?.dataset.required || 'This field is required.';
+      errorMessage = err?.dataset.required || 'This field is required.<span class="zh">此欄位為必填。</span>';
     } else if (validator) {
       const validatorResult = validator(value);
       if (validatorResult !== true) {
@@ -133,7 +133,7 @@ export function validateRequired(fields) {
     input.classList.toggle('invalid', !fieldValid);
     if (err) {
       err.classList.toggle('visible', !fieldValid);
-      if (!fieldValid && errorMessage) err.textContent = errorMessage;
+      if (!fieldValid && errorMessage) err.innerHTML = errorMessage;
     }
 
     if (!fieldValid) allValid = false;

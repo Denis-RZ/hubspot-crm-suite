@@ -121,7 +121,7 @@ async function deleteCompany(companyId, button) {
   const company = state.companies.find(record => record.id === companyId);
   const label = company?.properties?.name || companyId;
 
-  if (!confirm(`Delete company "${label}"? This cannot be undone.`)) {
+  if (!confirm(`Delete company "${label}"? This cannot be undone.\n刪除公司「${label}」？此操作無法復原。`)) {
     return;
   }
 
@@ -311,7 +311,7 @@ export default {
             <p>Company name is the anchor. Domain, city, and industry help when browsing records.<span class="zh">公司名稱是核心欄位。網域、城市與產業則有助於瀏覽資料。</span></p>
             <div class="form-grid cols-2">
               <div>
-                <label for="company-name">Company name<span class="zh">公司名稱</span> <span class="label-hint">required</span></label>
+                <label for="company-name">Company name<span class="zh">公司名稱</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
                 <input id="company-name" type="text" placeholder="Northwind Data Systems">
                 <div class="field-error" id="err-company-name">Company name is required.</div>
               </div>
@@ -339,7 +339,7 @@ export default {
             <div class="table-toolbar">
               <div>
                 <h3>Company Records<span class="zh">公司紀錄</span></h3>
-                <p>Use "Use in Links" to pre-select for association.<span class="zh">使用「Use in Links」預先選取以便建立關聯。</span></p>
+                <p>Use ⋯ → <strong>Associate…</strong> to link a company to a deal.<span class="zh">使用 ⋯ → 「建立關聯…」將公司連結到交易。</span></p>
               </div>
               <span id="company-count" class="pill">0 companies</span>
             </div>

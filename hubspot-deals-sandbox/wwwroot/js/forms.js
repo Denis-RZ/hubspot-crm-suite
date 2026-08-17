@@ -17,7 +17,7 @@ export function renderLifecycleOptions(options) {
   const items = options?.length
     ? options.map(o => ({ value: o.value ?? o, label: o.label ?? o }))
     : LIFECYCLE_STAGES_FALLBACK.map(v => ({ value: v, label: v }));
-  select.innerHTML = '<option value="">Not set</option>' +
+  select.innerHTML = '<option value="">Not set · 未設定</option>' +
     items.map(({ value, label }) => `<option value="${value}">${label}</option>`).join('');
 }
 

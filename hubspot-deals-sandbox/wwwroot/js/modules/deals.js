@@ -128,7 +128,7 @@ async function deleteDeal(dealId, button) {
   const deal = state.deals.find(record => record.id === dealId);
   const label = deal?.properties?.dealname || dealId;
 
-  if (!confirm(`Delete deal "${label}"? This cannot be undone.`)) {
+  if (!confirm(`Delete deal "${label}"? This cannot be undone.\n刪除交易「${label}」？此操作無法復原。`)) {
     return;
   }
 
@@ -326,7 +326,7 @@ export default {
           <div>
             <h2>Deals<span class="zh">交易</span></h2>
             <p>Create deals with valid pipeline metadata, search by any property,
-               then use <strong>Associate…</strong> in the ⋯ menu to link it to a contact or company.<span class="zh">建立包含有效銷售流程資料的交易，可依任意欄位搜尋，並透過 ⋯ 選單中的「Associate…」將其連結到聯絡人或公司。</span></p>
+               then use <strong>Associate…</strong> in the ⋯ menu to link it to a contact or company.<span class="zh">建立包含有效銷售流程資料的交易，可依任意欄位搜尋，並透過 ⋯ 選單中的「建立關聯…」將其連結到聯絡人或公司。</span></p>
           </div>
           <div class="sub-badge">Stages are built-in pipeline metadata<span class="zh">階段為內建的銷售流程資料</span></div>
         </div>
@@ -337,7 +337,7 @@ export default {
             <p id="deal-form-help">The Stage dropdown updates when you change the Pipeline.<span class="zh">切換銷售流程時，階段下拉選單會自動更新。</span></p>
             <div class="form-grid cols-2">
               <div>
-                <label for="deal-name">Deal name<span class="zh">交易名稱</span> <span class="label-hint">required</span></label>
+                <label for="deal-name">Deal name<span class="zh">交易名稱</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
                 <input id="deal-name" type="text" placeholder="AI rack upgrade">
                 <div class="field-error" id="err-deal-name">Deal name is required.</div>
               </div>
@@ -368,7 +368,7 @@ export default {
             <div class="table-toolbar">
               <div>
                 <h3>Deal Records<span class="zh">交易紀錄</span></h3>
-                <p>Use ⋯ → <strong>Associate…</strong> to link a deal to a contact or company.<span class="zh">使用 ⋯ → 「Associate…」將交易連結到聯絡人或公司。</span></p>
+                <p>Use ⋯ → <strong>Associate…</strong> to link a deal to a contact or company.<span class="zh">使用 ⋯ → 「建立關聯…」將交易連結到聯絡人或公司。</span></p>
               </div>
               <span id="deal-count" class="pill">0 deals</span>
             </div>

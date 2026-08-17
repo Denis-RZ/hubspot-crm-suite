@@ -97,7 +97,7 @@ function renderOptions(selectId, options, selected, zhMap) {
   const zhOn = document.body.classList.contains('zh-visible');
   select.innerHTML = options.map(o => {
     const label = o === '' ? 'All' : o;
-    const zh = zhOn ? zhMap?.[o] : null;
+    const zh = zhOn ? (o === '' ? '全部' : zhMap?.[o]) : null;
     const text = zh ? `${label} ${zh}` : label;
     return `<option value="${escapeHtml(o)}" ${o === selected ? 'selected' : ''}>${escapeHtml(text)}</option>`;
   }).join('');
@@ -258,7 +258,7 @@ function startEdit(defectId) {
 async function deleteDefect(defectId, button) {
   const record = state.defects.find(r => r.id === defectId);
   const label = record?.properties?.sku || defectId;
-  if (!confirm(`Delete defect record "${label}"?`)) return;
+  if (!confirm(`Delete defect record "${label}"?\n刪除瑕疵紀錄「${label}」？`)) return;
 
   setLoading(button, true);
   try {
@@ -311,18 +311,18 @@ export default {
             <p>SKU and defect type are required. Source distinguishes a manual inspector entry from an automated vision/OCR detection.<span class="zh">SKU 與瑕疵類型為必填。「偵測來源」用來區分人工檢驗與自動視覺（OCR）偵測。</span></p>
             <div class="form-grid cols-2">
               <div>
-                <label for="defect-sku">Product / SKU<span class="zh">產品 / 料號</span> <span class="label-hint">required</span></label>
+                <label for="defect-sku">Product / SKU<span class="zh">產品 / 料號</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
                 <input id="defect-sku" type="text" placeholder="PCB-4471">
-                <div class="field-error" id="err-defect-sku">SKU is required.</div>
+                <div class="field-error" id="err-defect-sku">SKU is required.<span class="zh">SKU 為必填。</span></div>
               </div>
               <div>
                 <label for="defect-station">Station / line<span class="zh">站別 / 產線</span></label>
                 <input id="defect-station" type="text" placeholder="Line 2 - AOI">
               </div>
               <div>
-                <label for="defect-type">Defect type<span class="zh">瑕疵類型</span> <span class="label-hint">required</span></label>
+                <label for="defect-type">Defect type<span class="zh">瑕疵類型</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
                 <input id="defect-type" type="text" placeholder="Solder bridge">
-                <div class="field-error" id="err-defect-type">Defect type is required.</div>
+                <div class="field-error" id="err-defect-type">Defect type is required.<span class="zh">瑕疵類型為必填。</span></div>
               </div>
               <div>
                 <label for="defect-severity">Severity<span class="zh">嚴重程度</span></label>

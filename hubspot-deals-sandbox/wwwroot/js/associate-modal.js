@@ -38,17 +38,17 @@ function populateSelect(records, labelFn) {
 
 function refreshList(type) {
   if (type === 'contacts') {
-    recordLabel().textContent = 'Contact';
+    recordLabel().innerHTML = 'Contact<span class="zh">聯絡人</span>';
     populateSelect(state.contacts, c => {
       const name = [c.properties.firstname, c.properties.lastname].filter(Boolean).join(' ')
         || c.properties.email || c.id;
       return `${name} [${c.id}]`;
     });
   } else if (type === 'companies') {
-    recordLabel().textContent = 'Company';
+    recordLabel().innerHTML = 'Company<span class="zh">公司</span>';
     populateSelect(state.companies, c => `${c.properties.name || c.id} [${c.id}]`);
   } else {
-    recordLabel().textContent = 'Deal';
+    recordLabel().innerHTML = 'Deal<span class="zh">交易</span>';
     populateSelect(state.deals, d => {
       const stage = d.properties.dealstage ? ` · ${d.properties.dealstage}` : '';
       return `${d.properties.dealname || d.id}${stage} [${d.id}]`;
@@ -59,7 +59,8 @@ function refreshList(type) {
 export function openAssociateModal(sourceType, sourceId, sourceName, preferredType = null) {
   _src = { type: sourceType, id: sourceId, name: sourceName };
 
-  document.getElementById('associate-modal-title').textContent = `Associate: ${sourceName}`;
+  document.getElementById('associate-modal-title').innerHTML =
+    `Associate: ${escapeHtml(sourceName)}<span class="zh">建立關聯：${escapeHtml(sourceName)}</span>`;
   resultEl().textContent = '';
   resultEl().style.display = 'none';
   confirmBtn().disabled = false;

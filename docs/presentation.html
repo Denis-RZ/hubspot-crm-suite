@@ -659,6 +659,33 @@
     body.zh-visible span.zh { display: inline !important; }
     body.zh-visible .en { display: none !important; }
 
+    /* The slide headline is h1/h2 in English; when it's hidden (.en) in
+       zh-visible mode, its sibling p.zh is the only headline left, so it
+       needs headline typography, not the small muted caption style. */
+    body.zh-visible .slide-title h1.en + p.zh {
+      font-size: 47px;
+      line-height: 1.02;
+      letter-spacing: -.045em;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 400;
+      color: var(--ink);
+      opacity: 1;
+      max-width: 840px;
+      margin-top: 0;
+    }
+
+    body.zh-visible .slide-title h2.en + p.zh {
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: -.03em;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 400;
+      color: var(--ink);
+      opacity: 1;
+      max-width: 900px;
+      margin-top: 0;
+    }
+
     .deck-progress {
       position: fixed;
       top: 0;
@@ -843,7 +870,7 @@
     }
   </style>
 </head>
-<body>
+<body class="zh-visible">
   <div class="deck-progress" aria-hidden="true"><span id="deck-progress-bar"></span></div>
   <main class="deck">
     <section class="slide" id="slide-1">
@@ -859,16 +886,16 @@
       <div class="row">
         <div class="col-7 stack">
           <div class="badge-row">
-            <span class="badge accent">Zero bundler</span>
-            <span class="badge">Native ES modules</span>
-            <span class="badge">Zero external dependencies</span>
-            <span class="badge green">Runtime plugins</span>
-            <span class="badge blue">CSV import / export</span>
+            <span class="badge accent">Zero bundler<span class="zh">零打包工具</span></span>
+            <span class="badge">Native ES modules<span class="zh">原生 ES 模組</span></span>
+            <span class="badge">Zero external dependencies<span class="zh">零外部依賴</span></span>
+            <span class="badge green">Runtime plugins<span class="zh">執行期外掛</span></span>
+            <span class="badge blue">CSV import / export<span class="zh">CSV 匯入／匯出</span></span>
           </div>
           <div class="metric-grid">
-            <div class="metric"><strong>Own</strong><span>Every record reads from and writes to a self-built, file-backed store — not a mock, not a third-party service</span></div>
-            <div class="metric"><strong>▶</strong><span>Expand any row to see linked records inline. Deals show contacts and companies. No separate screen.</span></div>
-            <div class="metric"><strong>ZIP</strong><span>Drop a plugin file — a new panel appears in the workspace without touching the main code</span></div>
+            <div class="metric"><strong>Own</strong><span>Every record reads from and writes to a self-built, file-backed store — not a mock, not a third-party service<span class="zh" style="display:block;margin-top:4px;">每筆紀錄的讀寫都透過自建的檔案儲存區——不是模擬資料，也不是第三方服務。</span></span></div>
+            <div class="metric"><strong>▶</strong><span>Expand any row to see linked records inline. Deals show contacts and companies. No separate screen.<span class="zh" style="display:block;margin-top:4px;">點擊任一列即可展開查看關聯紀錄。交易會顯示聯絡人與公司，無需切換畫面。</span></span></div>
+            <div class="metric"><strong>ZIP</strong><span>Drop a plugin file — a new panel appears in the workspace without touching the main code<span class="zh" style="display:block;margin-top:4px;">拖曳外掛檔案——工作區立即出現新面板，不需修改主程式碼。</span></span></div>
           </div>
         </div>
 
@@ -918,20 +945,20 @@
 
       <div class="callout-row">
         <div class="callout">
-          <h3>Master data first</h3>
-          <p>Company and contact records are created before any deal association is attempted.</p>
+          <h3>Master data first <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">先建立主檔資料</span></h3>
+          <p>Company and contact records are created before any deal association is attempted.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">在嘗試建立交易關聯之前，先建立公司與聯絡人紀錄。</span></p>
         </div>
         <div class="callout">
-          <h3>Deal second</h3>
-          <p>Pipeline and stage metadata are built in, so the deal form follows real CRM rules.</p>
+          <h3>Deal second <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">交易次之</span></h3>
+          <p>Pipeline and stage metadata are built in, so the deal form follows real CRM rules.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">流程與階段中繼資料為內建，交易表單依循真實 CRM 規則。</span></p>
         </div>
         <div class="callout">
-          <h3>Relationships last</h3>
-          <p>The user links records from row actions instead of manually typing IDs or guessing association targets.</p>
+          <h3>Relationships last <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">關聯最後建立</span></h3>
+          <p>The user links records from row actions instead of manually typing IDs or guessing association targets.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">使用者透過列操作建立關聯，無需手動輸入 ID 或猜測關聯對象。</span></p>
         </div>
       </div>
 
-      <footer class="footer"><strong>Design principle:</strong><span>UI enforces the CRM object hierarchy — master data before relationships.</span></footer>
+      <footer class="footer"><strong>Design principle:<span class="zh" style="font-size:12px;"> 設計原則：</span></strong><span>UI enforces the CRM object hierarchy — master data before relationships.<span class="zh" style="font-size:12px;"> 介面強制遵循 CRM 物件階層——先主檔資料，後關聯。</span></span></footer>
     </section>
 
     <section class="slide" id="slide-3">
@@ -979,7 +1006,7 @@
         </div>
       </div>
 
-      <footer class="footer"><strong>Technical point:</strong><span>Frontend module owns UI; backend module owns routes and calls into LocalCrmStore.</span></footer>
+      <footer class="footer"><strong>Technical point:<span class="zh" style="font-size:12px;"> 技術要點：</span></strong><span>Frontend module owns UI; backend module owns routes and calls into LocalCrmStore.<span class="zh" style="font-size:12px;"> 前端模組負責介面；後端模組負責路由並呼叫 LocalCrmStore。</span></span></footer>
     </section>
 
     <section class="slide" id="slide-4">
@@ -1001,8 +1028,8 @@
         </div>
         <div class="col-5 stack">
           <div class="card">
-            <h3>Why this detail matters</h3>
-            <p class="caption">Most CRM integrations get this wrong first time. Association records are their own entity — bidirectional links, not a field on the deal. The app makes that explicit.</p>
+            <h3>Why this detail matters <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">為何這個細節很重要</span></h3>
+            <p class="caption">Most CRM integrations get this wrong first time. Association records are their own entity — bidirectional links, not a field on the deal. The app makes that explicit.<br><span class="zh" style="font-size:11px;">大多數 CRM 整合第一次都會做錯這點。關聯紀錄是獨立的實體——雙向連結，而非交易上的欄位。本應用程式將此明確呈現。</span></p>
           </div>
           <div class="bullet-list">
             <div class="bullet">
@@ -1023,7 +1050,7 @@
         </div>
       </div>
 
-      <footer class="footer"><strong>Design detail:</strong><span>every association is written both ways at once — deal→contact and contact→deal — so either side can query it directly</span></footer>
+      <footer class="footer"><strong>Design detail:<span class="zh" style="font-size:12px;"> 設計細節：</span></strong><span>every association is written both ways at once — deal→contact and contact→deal — so either side can query it directly<span class="zh" style="font-size:12px;"> 每筆關聯會同時寫入雙向——交易→聯絡人與聯絡人→交易——任一方都能直接查詢。</span></span></footer>
     </section>
 
     <section class="slide" id="slide-5">
@@ -1071,7 +1098,7 @@
         </div>
       </div>
 
-      <footer class="footer"><strong>Integration signal:</strong><span>Round-trip data flow: export, edit, validate, apply.</span></footer>
+      <footer class="footer"><strong>Integration signal:<span class="zh" style="font-size:12px;"> 整合訊號：</span></strong><span>Round-trip data flow: export, edit, validate, apply.<span class="zh" style="font-size:12px;"> 資料往返流程：匯出、編輯、驗證、套用。</span></span></footer>
     </section>
 
     <section class="slide" id="slide-6">
@@ -1118,7 +1145,7 @@
         </div>
       </div>
 
-      <footer class="footer"><strong>Runtime plugin proof:</strong><span>Upload -> reorder -> disable -> re-enable without touching the static shell; plugin actions use a dispatcher.</span></footer>
+      <footer class="footer"><strong>Runtime plugin proof:<span class="zh" style="font-size:12px;"> 執行期外掛驗證：</span></strong><span>Upload -> reorder -> disable -> re-enable without touching the static shell; plugin actions use a dispatcher.<span class="zh" style="font-size:12px;"> 上傳 → 排序 → 停用 → 重新啟用，全程不需修改靜態外殼；外掛動作透過 dispatcher 執行。</span></span></footer>
     </section>
 
     <section class="slide" id="slide-7">
@@ -1166,7 +1193,7 @@
         </div>
       </div>
 
-      <footer class="footer"><strong>User outcome:</strong><span>Fewer blind errors, faster correction, cleaner demos.</span></footer>
+      <footer class="footer"><strong>User outcome:<span class="zh" style="font-size:12px;"> 使用者效益：</span></strong><span>Fewer blind errors, faster correction, cleaner demos.<span class="zh" style="font-size:12px;"> 減少不明確的錯誤、更快修正、展示更順暢。</span></span></footer>
     </section>
 
     <section class="slide" id="slide-8">
@@ -1182,27 +1209,27 @@
       <div class="proof-grid">
         <div class="proof-card">
           <strong>OWN</strong>
-          <h3>Self-built data layer</h3>
-          <p>Records, pipelines, stages, lifecycle stages, and industry options all come from code the author wrote instead of a third-party service.</p>
+          <h3>Self-built data layer <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">自建資料層</span></h3>
+          <p>Records, pipelines, stages, lifecycle stages, and industry options all come from code the author wrote instead of a third-party service.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">紀錄、銷售流程、階段、生命週期階段與產業選項，全部來自作者自行撰寫的程式碼，而非第三方服務。</span></p>
         </div>
         <div class="proof-card">
           <strong>CRM</strong>
-          <h3>Correct association model</h3>
-          <p>Deals, contacts, and companies are separate objects; relationships are explicit, bidirectional links — not embedded fields.</p>
+          <h3>Correct association model <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">正確的關聯模型</span></h3>
+          <p>Deals, contacts, and companies are separate objects; relationships are explicit, bidirectional links — not embedded fields.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">交易、聯絡人與公司是各自獨立的物件；關聯是明確的雙向連結，而非內嵌欄位。</span></p>
         </div>
         <div class="proof-card">
           <strong>ZIP</strong>
-          <h3>Runtime extensibility</h3>
-          <p>Uploaded plugins can add a panel, run through the host dispatcher, and share the same module order as built-in panels.</p>
+          <h3>Runtime extensibility <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">執行期可擴充性</span></h3>
+          <p>Uploaded plugins can add a panel, run through the host dispatcher, and share the same module order as built-in panels.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">上傳的外掛可新增面板，透過 host dispatcher 執行，並與內建面板共用同一套模組順序。</span></p>
         </div>
         <div class="proof-card">
           <strong>UX</strong>
-          <h3>Errors users can fix</h3>
-          <p>Rejection messages are parsed once and rendered as form summaries, invalid fields, and inline hints.</p>
+          <h3>Errors users can fix <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">使用者可自行修正的錯誤</span></h3>
+          <p>Rejection messages are parsed once and rendered as form summaries, invalid fields, and inline hints.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">拒絕訊息只需解析一次，即可呈現為表單摘要、無效欄位標記與內聯提示。</span></p>
         </div>
       </div>
 
-      <footer class="footer"><strong>Demo close:</strong><span>A small ASP.NET + native ES module system, built end to end, with visible tradeoffs and no hidden dependencies.</span></footer>
+      <footer class="footer"><strong>Demo close:<span class="zh" style="font-size:12px;"> 展示總結：</span></strong><span>A small ASP.NET + native ES module system, built end to end, with visible tradeoffs and no hidden dependencies.<span class="zh" style="font-size:12px;"> 一套小型的 ASP.NET + 原生 ES 模組系統，從頭到尾自行打造，取捨清楚可見，沒有隱藏的依賴。</span></span></footer>
     </section>
     <section class="slide appendix" id="slide-9">
       <header class="slide-header">
@@ -1216,34 +1243,34 @@
 
       <div class="appendix-grid">
         <div class="api-group">
-          <h3>CRUD objects</h3>
-          <p>List, create, update, and delete records for deals, contacts, companies, and defects — same shape for every module.</p>
+          <h3>CRUD objects <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">CRUD 物件操作</span></h3>
+          <p>List, create, update, and delete records for deals, contacts, companies, and defects — same shape for every module.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">列出、建立、更新、刪除交易、聯絡人、公司與瑕疵記錄——每個模組結構一致。</span></p>
           <code>GET /api/{type}</code>
           <code>POST /api/{type}</code>
           <code>PATCH /api/{type}/{id}</code>
           <code>DELETE /api/{type}/{id}</code>
         </div>
         <div class="api-group">
-          <h3>Search and filters</h3>
-          <p>Deal search powers name, stage, and pipeline filtering against the in-memory store.</p>
+          <h3>Search and filters <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">搜尋與篩選</span></h3>
+          <p>Deal search powers name, stage, and pipeline filtering against the in-memory store.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">交易搜尋支援依名稱、階段與流程對記憶體中的資料進行篩選。</span></p>
           <code>POST /api/deals/search</code>
         </div>
         <div class="api-group">
-          <h3>Metadata</h3>
-          <p>Form dropdowns read from built-in metadata, so the user cannot submit invalid options.</p>
+          <h3>Metadata <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">中繼資料</span></h3>
+          <p>Form dropdowns read from built-in metadata, so the user cannot submit invalid options.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">表單下拉選單讀取內建中繼資料，使用者無法送出無效選項。</span></p>
           <code>GET /api/pipelines</code>
           <code>GET /api/bootstrap</code>
         </div>
         <div class="api-group">
-          <h3>Associations</h3>
-          <p>Links are written both directions at once and stored alongside the records — no fixed type-id table to memorize.</p>
+          <h3>Associations <span class="zh" style="font-size:12px;display:block;margin-top:2px;font-weight:400;">關聯</span></h3>
+          <p>Links are written both directions at once and stored alongside the records — no fixed type-id table to memorize.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">連結會同時寫入雙向並與紀錄一起儲存——不需要記住固定的 type-id 對照表。</span></p>
           <code>GET /api/associations/{dealId}/{type}</code>
           <code>POST /api/associate</code>
-          <p style="margin-top:12px;">One association store, shared by deals, contacts, and companies.</p>
+          <p style="margin-top:12px;">One association store, shared by deals, contacts, and companies.<span class="zh" style="font-size:12px;display:block;margin-top:4px;">單一關聯儲存區，交易、聯絡人與公司共用。</span></p>
         </div>
       </div>
 
-      <footer class="footer"><strong>Data:</strong><span>Everything persists to App_Data/crm-store.json. No auth header, no external base URL — it's all local.</span></footer>
+      <footer class="footer"><strong>Data:<span class="zh" style="font-size:12px;"> 資料：</span></strong><span>Everything persists to App_Data/crm-store.json. No auth header, no external base URL — it's all local.<span class="zh" style="font-size:12px;"> 所有資料都持久化到 App_Data/crm-store.json。沒有驗證標頭，沒有外部 Base URL——完全在本機。</span></span></footer>
     </section>
   </main>
   <aside class="speaker-notes" id="speaker-notes" hidden>
@@ -1256,7 +1283,7 @@
     <span class="presenter-index" id="presenter-index">1 / 9</span>
     <button type="button" id="slide-next" aria-label="Next slide">&rarr;</button>
     <button type="button" id="notes-toggle">Notes</button>
-    <button type="button" id="zh-toggle" title="Toggle Chinese subtitles">中文</button>
+    <button type="button" id="zh-toggle" title="Toggle Chinese subtitles" style="background:var(--accent-soft);color:var(--accent-dark);">中文</button>
     <a href="http://localhost:5100" target="_blank" rel="noreferrer">Live app</a>
     <button type="button" id="clean-toggle">Clean</button>
     <button type="button" id="fs-toggle">⛶ Present</button>

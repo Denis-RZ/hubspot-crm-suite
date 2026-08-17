@@ -102,7 +102,7 @@ export function renderCompanyIndustryOptions(options = INDUSTRY_OPTIONS) {
   const select = document.getElementById('company-industry');
   if (!select) return;
 
-  select.innerHTML = '<option value="">Not set</option>';
+  select.innerHTML = '<option value="">Not set · 未設定</option>';
   options.forEach(({ value, label }) => {
     const option = document.createElement('option');
     option.value = value;
@@ -137,7 +137,7 @@ function fillFilterSelect(id, items, getValue, getLabel) {
   if (!select) return;
 
   const currentValue = select.value;
-  select.innerHTML = '<option value="">All</option>';
+  select.innerHTML = '<option value="">All · 全部</option>';
 
   items.forEach(item => {
     const option = document.createElement('option');
@@ -162,16 +162,18 @@ export function renderDealTable(records, searchActive, options = {}) {
     : 'View linked contacts and companies';
 
   countEl.className = searchActive ? 'pill filter-active' : 'pill';
-  countEl.textContent = searchActive ? `${records.length} filtered` : `${records.length} deals`;
+  countEl.innerHTML = searchActive
+    ? `${records.length} filtered<span class="zh">已篩選 ${records.length} 筆</span>`
+    : `${records.length} deals<span class="zh">共 ${records.length} 筆交易</span>`;
 
   if (records.length === 0) {
     body.innerHTML = `<tr><td colspan="6">
       <div class="empty-state">
         <div class="icon">DL</div>
         <p>${searchActive
-          ? 'No deals match the current filters.'
-          : 'No deals yet.<br>Create your first deal using the form on the left.'}</p>
-        ${searchActive ? '<button class="button button-secondary" data-action="clear-deal-filters">Clear filters</button>' : ''}
+          ? 'No deals match the current filters.<span class="zh">沒有符合篩選條件的交易。</span>'
+          : 'No deals yet.<br>Create your first deal using the form on the left.<span class="zh">尚無交易，請使用左側表單建立第一筆。</span>'}</p>
+        ${searchActive ? '<button class="button button-secondary" data-action="clear-deal-filters">Clear filters<span class="zh">清除篩選</span></button>' : ''}
       </div>
     </td></tr>`;
     renderPaginator('deal-paginator', 0, 1, 'deals');
@@ -190,10 +192,10 @@ export function renderDealTable(records, searchActive, options = {}) {
       <td>${escapeHtml(deal.properties.pipeline || '-')}</td>
       <td style="text-align:right">
         ${actionMenu(deal.id, [
-          ...(linksEnabled ? [{ label: 'Associate…', action: 'associate-deal' }] : []),
-          { label: 'Edit', action: 'edit-deal' },
+          ...(linksEnabled ? [{ label: 'Associate…<span class="zh">建立關聯…</span>', action: 'associate-deal' }] : []),
+          { label: 'Edit<span class="zh">編輯</span>', action: 'edit-deal' },
           { divider: true },
-          { label: 'Delete', action: 'delete-deal', danger: true },
+          { label: 'Delete<span class="zh">刪除</span>', action: 'delete-deal', danger: true },
         ])}
       </td>`;
     body.appendChild(row);
@@ -205,8 +207,8 @@ export function renderContactTable(records, options = {}) {
   const {
     linksEnabled = true,
     countClass = 'pill',
-    countLabel = `${records.length} contacts`,
-    emptyMessage = 'No contacts yet.<br>Create the first contact using the form on the left.',
+    countLabel = `${records.length} contacts<span class="zh">共 ${records.length} 筆聯絡人</span>`,
+    emptyMessage = 'No contacts yet.<br>Create the first contact using the form on the left.<span class="zh">尚無聯絡人，請使用左側表單建立第一筆。</span>',
     page = 1,
     pageSize = 10,
   } = options;
@@ -217,7 +219,7 @@ export function renderContactTable(records, options = {}) {
   const canExpand = linksEnabled;
 
   countEl.className = countClass;
-  countEl.textContent = countLabel;
+  countEl.innerHTML = countLabel;
 
   if (records.length === 0) {
     body.innerHTML = `<tr><td colspan="6"><div class="empty-state">
@@ -244,10 +246,10 @@ export function renderContactTable(records, options = {}) {
       <td>${stagePill(contact.properties.lifecyclestage || '')}</td>
       <td style="text-align:right">
         ${actionMenu(contact.id, [
-          ...(linksEnabled ? [{ label: 'Associate…', action: 'associate-contact' }] : []),
-          { label: 'Edit', action: 'edit-contact' },
+          ...(linksEnabled ? [{ label: 'Associate…<span class="zh">建立關聯…</span>', action: 'associate-contact' }] : []),
+          { label: 'Edit<span class="zh">編輯</span>', action: 'edit-contact' },
           { divider: true },
-          { label: 'Delete', action: 'delete-contact', danger: true },
+          { label: 'Delete<span class="zh">刪除</span>', action: 'delete-contact', danger: true },
         ])}
       </td>`;
     body.appendChild(row);
@@ -259,8 +261,8 @@ export function renderCompanyTable(records, options = {}) {
   const {
     linksEnabled = true,
     countClass = 'pill',
-    countLabel = `${records.length} companies`,
-    emptyMessage = 'No companies yet.<br>Create the first company using the form on the left.',
+    countLabel = `${records.length} companies<span class="zh">共 ${records.length} 筆公司</span>`,
+    emptyMessage = 'No companies yet.<br>Create the first company using the form on the left.<span class="zh">尚無公司，請使用左側表單建立第一筆。</span>',
     page = 1,
     pageSize = 10,
   } = options;
@@ -271,7 +273,7 @@ export function renderCompanyTable(records, options = {}) {
   const canExpand = linksEnabled;
 
   countEl.className = countClass;
-  countEl.textContent = countLabel;
+  countEl.innerHTML = countLabel;
 
   if (records.length === 0) {
     body.innerHTML = `<tr><td colspan="6"><div class="empty-state">
@@ -294,10 +296,10 @@ export function renderCompanyTable(records, options = {}) {
       <td>${escapeHtml(company.properties.industry || '-')}</td>
       <td style="text-align:right">
         ${actionMenu(company.id, [
-          ...(linksEnabled ? [{ label: 'Associate…', action: 'associate-company' }] : []),
-          { label: 'Edit', action: 'edit-company' },
+          ...(linksEnabled ? [{ label: 'Associate…<span class="zh">建立關聯…</span>', action: 'associate-company' }] : []),
+          { label: 'Edit<span class="zh">編輯</span>', action: 'edit-company' },
           { divider: true },
-          { label: 'Delete', action: 'delete-company', danger: true },
+          { label: 'Delete<span class="zh">刪除</span>', action: 'delete-company', danger: true },
         ])}
       </td>`;
     body.appendChild(row);
@@ -371,8 +373,11 @@ export function renderAssociations(objectType, records) {
 
 function linksTable(rows, emptyText, headers = []) {
   if (!rows.length) return `<p class="empty-note">${emptyText}</p>`;
+  // Headers are always trusted literals from the calling code (may contain
+  // a <span class="zh"> translation) - only cell data, which comes from
+  // user-entered record properties, is escaped.
   const thead = headers.length
-    ? `<thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`
+    ? `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`
     : '';
   return `<table class="links-mini-table">${thead}<tbody>${rows.map(cells =>
     `<tr>${cells.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`
@@ -409,16 +414,16 @@ export function renderDealLinksRow(parentRow, contacts, companies, enabledTypes 
   if (enabledTypes.includes('contacts')) {
     sections.push(`
       <div>
-        <p class="edit-panel-label">Linked contacts (${contacts.length})</p>
-        ${linksTable(contactRows, 'None linked', ['Name', 'Email'])}
+        <p class="edit-panel-label">Linked contacts (${contacts.length})<span class="zh">已連結聯絡人（${contacts.length}）</span></p>
+        ${linksTable(contactRows, 'None linked<span class="zh">尚無關聯</span>', ['Name<span class="zh">姓名</span>', 'Email<span class="zh">電子郵件</span>'])}
       </div>`);
   }
 
   if (enabledTypes.includes('companies')) {
     sections.push(`
       <div>
-        <p class="edit-panel-label">Linked companies (${companies.length})</p>
-        ${linksTable(companyRows, 'None linked', ['Name', 'Domain'])}
+        <p class="edit-panel-label">Linked companies (${companies.length})<span class="zh">已連結公司（${companies.length}）</span></p>
+        ${linksTable(companyRows, 'None linked<span class="zh">尚無關聯</span>', ['Name<span class="zh">名稱</span>', 'Domain<span class="zh">網域</span>'])}
       </div>`);
   }
 
@@ -436,8 +441,8 @@ export function renderContactLinksRow(parentRow, deals) {
   ]);
   return insertPanelRow(parentRow, 6, `
     <div>
-      <p class="edit-panel-label">Linked deals (${deals.length})</p>
-      ${linksTable(rows, 'None linked', ['Deal', 'Stage', 'Amount'])}
+      <p class="edit-panel-label">Linked deals (${deals.length})<span class="zh">已連結交易（${deals.length}）</span></p>
+      ${linksTable(rows, 'None linked<span class="zh">尚無關聯</span>', ['Deal<span class="zh">交易</span>', 'Stage<span class="zh">階段</span>', 'Amount<span class="zh">金額</span>'])}
     </div>`, { kind: 'links' });
 }
 
@@ -449,8 +454,8 @@ export function renderCompanyLinksRow(parentRow, deals) {
   ]);
   return insertPanelRow(parentRow, 6, `
     <div>
-      <p class="edit-panel-label">Linked deals (${deals.length})</p>
-      ${linksTable(rows, 'None linked', ['Deal', 'Stage', 'Amount'])}
+      <p class="edit-panel-label">Linked deals (${deals.length})<span class="zh">已連結交易（${deals.length}）</span></p>
+      ${linksTable(rows, 'None linked<span class="zh">尚無關聯</span>', ['Deal<span class="zh">交易</span>', 'Stage<span class="zh">階段</span>', 'Amount<span class="zh">金額</span>'])}
     </div>`, { kind: 'links' });
 }
 
@@ -491,32 +496,32 @@ export function renderDealRowEdit(parentRow, deal, state) {
     : '';
 
   const panelRow = insertPanelRow(parentRow, 6, `
-    <p class="edit-panel-label">Edit deal</p>
+    <p class="edit-panel-label">Edit deal<span class="zh">編輯交易</span></p>
     <div class="form-grid cols-2">
       <div>
-        <label>Deal name <span class="label-hint">required</span></label>
+        <label>Deal name<span class="zh">交易名稱</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
         <input data-field="dealname" value="${escapeHtml(deal.properties.dealname || '')}" placeholder="Deal name">
       </div>
       <div>
-        <label>Amount</label>
+        <label>Amount<span class="zh">金額</span></label>
         <input data-field="amount" value="${escapeHtml(deal.properties.amount || '')}" placeholder="25000">
       </div>
       <div>
-        <label>Pipeline</label>
+        <label>Pipeline<span class="zh">銷售流程</span></label>
         <select data-field="pipeline">${pipelineOptions}</select>
       </div>
       <div>
-        <label>Stage</label>
+        <label>Stage<span class="zh">階段</span></label>
         <select data-field="dealstage">${stageOptions}</select>
       </div>
       <div>
-        <label>Close date</label>
+        <label>Close date<span class="zh">預計成交日</span></label>
         <input type="date" data-field="closedate" value="${escapeHtml(closeDate)}">
       </div>
     </div>
     <div class="edit-panel-actions">
-      <button class="button button-primary" data-action="save-deal-inline" data-id="${escapeHtml(deal.id)}">Save changes</button>
-      <button class="button button-secondary" data-action="cancel-inline" data-id="${escapeHtml(deal.id)}">Cancel</button>
+      <button class="button button-primary" data-action="save-deal-inline" data-id="${escapeHtml(deal.id)}">Save changes<span class="zh">儲存變更</span></button>
+      <button class="button button-secondary" data-action="cancel-inline" data-id="${escapeHtml(deal.id)}">Cancel<span class="zh">取消</span></button>
     </div>`);
 
   const pipelineSelect = panelRow.querySelector('[data-field="pipeline"]');
@@ -541,32 +546,32 @@ export function renderContactRowEdit(parentRow, contact, lifecycleOptions = []) 
   }).join('');
 
   const panelRow = insertPanelRow(parentRow, 6, `
-    <p class="edit-panel-label">Edit contact</p>
+    <p class="edit-panel-label">Edit contact<span class="zh">編輯聯絡人</span></p>
     <div class="form-grid cols-2">
       <div>
-        <label>First name</label>
+        <label>First name<span class="zh">名字</span></label>
         <input data-field="firstname" value="${escapeHtml(contact.properties.firstname || '')}" placeholder="Alice">
       </div>
       <div>
-        <label>Last name</label>
+        <label>Last name<span class="zh">姓氏</span></label>
         <input data-field="lastname" value="${escapeHtml(contact.properties.lastname || '')}" placeholder="Chen">
       </div>
       <div>
-        <label>Email <span class="label-hint">required</span></label>
+        <label>Email<span class="zh">電子郵件</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
         <input data-field="email" type="email" value="${escapeHtml(contact.properties.email || '')}" placeholder="alice@example.com">
       </div>
       <div>
-        <label>Phone</label>
+        <label>Phone<span class="zh">電話</span></label>
         <input data-field="phone" value="${escapeHtml(contact.properties.phone || '')}" placeholder="+1-000-000-0000">
       </div>
       <div>
-        <label>Lifecycle stage</label>
-        <select data-field="lifecyclestage"><option value="">Not set</option>${lifecycleHtml}</select>
+        <label>Lifecycle stage<span class="zh">生命週期階段</span></label>
+        <select data-field="lifecyclestage"><option value="">Not set · 未設定</option>${lifecycleHtml}</select>
       </div>
     </div>
     <div class="edit-panel-actions">
-      <button class="button button-primary" data-action="save-contact-inline" data-id="${escapeHtml(contact.id)}">Save changes</button>
-      <button class="button button-secondary" data-action="cancel-inline" data-id="${escapeHtml(contact.id)}">Cancel</button>
+      <button class="button button-primary" data-action="save-contact-inline" data-id="${escapeHtml(contact.id)}">Save changes<span class="zh">儲存變更</span></button>
+      <button class="button button-secondary" data-action="cancel-inline" data-id="${escapeHtml(contact.id)}">Cancel<span class="zh">取消</span></button>
     </div>`);
 
   panelRow.querySelector('[data-field="email"]').focus();
@@ -578,39 +583,39 @@ export function renderCompanyRowEdit(parentRow, company) {
   ).join('');
 
   const panelRow = insertPanelRow(parentRow, 6, `
-    <p class="edit-panel-label">Edit company</p>
+    <p class="edit-panel-label">Edit company<span class="zh">編輯公司</span></p>
     <div class="form-grid cols-2">
       <div>
-        <label>Company name <span class="label-hint">required</span></label>
+        <label>Company name<span class="zh">公司名稱</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
         <input data-field="name" value="${escapeHtml(company.properties.name || '')}" placeholder="Northwind Data Systems">
       </div>
       <div>
-        <label>Domain</label>
+        <label>Domain<span class="zh">網域</span></label>
         <input data-field="domain" value="${escapeHtml(company.properties.domain || '')}" placeholder="northwind.example">
       </div>
       <div>
-        <label>City</label>
+        <label>City<span class="zh">城市</span></label>
         <input data-field="city" value="${escapeHtml(company.properties.city || '')}" placeholder="Taoyuan">
       </div>
       <div>
-        <label>Industry</label>
-        <select data-field="industry"><option value="">Not set</option>${industryOptions}</select>
+        <label>Industry<span class="zh">產業</span></label>
+        <select data-field="industry"><option value="">Not set · 未設定</option>${industryOptions}</select>
       </div>
     </div>
     <div class="edit-panel-actions">
-      <button class="button button-primary" data-action="save-company-inline" data-id="${escapeHtml(company.id)}">Save changes</button>
-      <button class="button button-secondary" data-action="cancel-inline" data-id="${escapeHtml(company.id)}">Cancel</button>
+      <button class="button button-primary" data-action="save-company-inline" data-id="${escapeHtml(company.id)}">Save changes<span class="zh">儲存變更</span></button>
+      <button class="button button-secondary" data-action="cancel-inline" data-id="${escapeHtml(company.id)}">Cancel<span class="zh">取消</span></button>
     </div>`);
 
   panelRow.querySelector('[data-field="name"]').focus();
 }
 
-export function renderImportEmptyState(message = 'Upload a CSV file and click Preview to validate rows before saving them.') {
+export function renderImportEmptyState(message = 'Upload a CSV file and click Preview to validate rows before saving them.<span class="zh">上傳 CSV 檔案並點擊「預覽匯入」以在儲存前驗證各列資料。</span>') {
   const countEl = document.getElementById('import-preview-count');
   const body = document.getElementById('import-preview-body');
   if (!countEl || !body) return;
 
-  countEl.textContent = 'No preview yet';
+  countEl.innerHTML = 'No preview yet<span class="zh">尚無預覽</span>';
   countEl.className = 'pill';
   body.innerHTML = `<tr><td colspan="5"><div class="empty-state">
       <div class="icon" style="font-size:22px;font-family:monospace;font-weight:800">CSV</div>
