@@ -287,6 +287,8 @@ input.invalid, select.invalid {
 .button-small { padding: 8px 10px; font-size: 12px; border-radius: 10px; }
 .button.hidden { display: none; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions-cell { text-align: right; white-space: nowrap; }
+.actions-cell .button { margin-left: 6px; }
 
 /* ── Table ───────────────────────────────────────────────────────── */
 .table-card {

@@ -56,6 +56,15 @@ function severityClass(severity) {
   }[severity] || 'pill';
 }
 
+function closeModal() {
+  document.getElementById('defect-modal')?.setAttribute('hidden', '');
+}
+
+function openModal() {
+  document.getElementById('defect-modal')?.removeAttribute('hidden');
+  document.getElementById('defect-sku')?.focus();
+}
+
 function resetForm() {
   crudMode = 'create';
   editingId = null;
@@ -67,9 +76,13 @@ function resetForm() {
   document.getElementById('defect-reportedby').value = '';
   document.getElementById('defect-notes').value = '';
   renderCompanyOptions('');
-  document.getElementById('defect-form-title').innerHTML = 'Log Defect<span class="zh">登錄瑕疵</span>';
+  document.getElementById('defect-modal-title').innerHTML = 'Log Defect<span class="zh">登錄瑕疵</span>';
   document.getElementById('btn-save-defect').innerHTML = 'Log defect<span class="zh">登錄瑕疵</span>';
-  document.getElementById('btn-cancel-defect-edit')?.classList.add('hidden');
+}
+
+function openCreateModal() {
+  resetForm();
+  openModal();
 }
 
 function fillForm(record) {
@@ -82,10 +95,10 @@ function fillForm(record) {
   document.getElementById('defect-reportedby').value = p.reportedby || '';
   document.getElementById('defect-notes').value = p.notes || '';
   renderCompanyOptions(p.companyid || '');
-  document.getElementById('defect-form-title').innerHTML =
+  document.getElementById('defect-modal-title').innerHTML =
     `Editing ${escapeHtml(record.id)}<span class="zh">編輯 ${escapeHtml(record.id)}</span>`;
   document.getElementById('btn-save-defect').innerHTML = 'Save changes<span class="zh">儲存變更</span>';
-  document.getElementById('btn-cancel-defect-edit')?.classList.remove('hidden');
+  openModal();
 }
 
 function renderOptions(selectId, options, selected, zhMap) {
@@ -149,7 +162,7 @@ function renderTable() {
     body.innerHTML = `<tr><td colspan="9"><p class="empty-note">${
       isFilterActive
         ? 'No defects match the current filters.<span class="zh">沒有符合篩選條件的瑕疵。</span>'
-        : 'No defects logged yet.<br>Use the form on the left to log the first one.<span class="zh">尚無瑕疵紀錄，請使用左側表單登錄第一筆。</span>'
+        : 'No defects logged yet.<br>Click "+ Log defect" above to log the first one.<span class="zh">尚無瑕疵紀錄，請點擊上方「+ 登錄瑕疵」建立第一筆。</span>'
     }</p></td></tr>`;
   } else {
     body.innerHTML = pageRecords.map(record => {
@@ -167,9 +180,9 @@ function renderTable() {
           <td>${withZh(p.source === 'VisionSystem' ? 'VisionSystem' : 'Manual', ZH_SOURCE)}</td>
           <td>${escapeHtml(detected)}</td>
           <td class="actions-cell">
-            ${p.status !== 'Resolved' ? `<button class="button button-secondary button-sm" data-action="resolve-defect" data-id="${record.id}">Resolve<span class="zh">已解決</span></button>` : ''}
-            <button class="button button-secondary button-sm" data-action="edit-defect" data-id="${record.id}">Edit<span class="zh">編輯</span></button>
-            <button class="button button-danger button-sm" data-action="delete-defect" data-id="${record.id}">Delete<span class="zh">刪除</span></button>
+            ${p.status !== 'Resolved' ? `<button class="button button-secondary button-small" data-action="resolve-defect" data-id="${record.id}">Resolve<span class="zh">已解決</span></button>` : ''}
+            <button class="button button-secondary button-small" data-action="edit-defect" data-id="${record.id}">Edit<span class="zh">編輯</span></button>
+            <button class="button button-danger button-small" data-action="delete-defect" data-id="${record.id}">Delete<span class="zh">刪除</span></button>
           </td>
         </tr>`;
     }).join('');
@@ -216,6 +229,7 @@ async function saveDefect(button) {
   try {
     const saved = await apiFetch(url, isEdit ? 'PATCH' : 'POST', payload);
     await refreshAll();
+    closeModal();
     resetForm();
     setResult(saved);
     toast(`Defect ${payload.sku} ${isEdit ? 'updated' : 'logged'}!`, 'success');
@@ -305,94 +319,113 @@ export default {
           <div class="sub-badge">Self-contained module<span class="zh">獨立模組</span></div>
         </div>
 
-        <div class="grid-2">
-          <article class="section-card">
-            <h3 id="defect-form-title">Log Defect<span class="zh">登錄瑕疵</span></h3>
-            <p>SKU and defect type are required. Source distinguishes a manual inspector entry from an automated vision/OCR detection.<span class="zh">SKU 與瑕疵類型為必填。「偵測來源」用來區分人工檢驗與自動視覺（OCR）偵測。</span></p>
-            <div class="form-grid cols-2">
-              <div>
-                <label for="defect-sku">Product / SKU<span class="zh">產品 / 料號</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
-                <input id="defect-sku" type="text" placeholder="PCB-4471">
-                <div class="field-error" id="err-defect-sku">SKU is required.<span class="zh">SKU 為必填。</span></div>
-              </div>
-              <div>
-                <label for="defect-station">Station / line<span class="zh">站別 / 產線</span></label>
-                <input id="defect-station" type="text" placeholder="Line 2 - AOI">
-              </div>
-              <div>
-                <label for="defect-type">Defect type<span class="zh">瑕疵類型</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
-                <input id="defect-type" type="text" placeholder="Solder bridge">
-                <div class="field-error" id="err-defect-type">Defect type is required.<span class="zh">瑕疵類型為必填。</span></div>
-              </div>
-              <div>
-                <label for="defect-severity">Severity<span class="zh">嚴重程度</span></label>
-                <select id="defect-severity"></select>
-              </div>
-              <div>
-                <label for="defect-source">Detected by<span class="zh">偵測來源</span></label>
-                <select id="defect-source"></select>
-              </div>
-              <div>
-                <label for="defect-reportedby">Reported by<span class="zh">回報人</span></label>
-                <input id="defect-reportedby" type="text" placeholder="Inspector or camera ID">
-              </div>
-              <div>
-                <label for="defect-company">Company<span class="zh">公司</span></label>
-                <select id="defect-company"></select>
-                <div class="helper">Optional link to a record from the Companies module.<span class="zh">選填，可連結到 Companies 模組中的公司。</span></div>
-              </div>
-              <div>
-                <label for="defect-notes">Notes<span class="zh">備註</span></label>
-                <input id="defect-notes" type="text" placeholder="Optional detail">
-              </div>
+        <article class="table-card">
+          <div class="table-toolbar">
+            <div>
+              <h3>Defect Records<span class="zh">瑕疵紀錄</span></h3>
+              <p>Vision-system rows simulate an OCR/AOI feed pushing detections in automatically.<span class="zh">「視覺系統」列模擬 OCR/AOI 自動偵測回傳的資料。</span></p>
             </div>
-            <div class="actions">
-              <button id="btn-save-defect" class="button button-primary">Log defect<span class="zh">登錄瑕疵</span></button>
-              <button id="btn-cancel-defect-edit" class="button button-secondary hidden">Cancel edit<span class="zh">取消編輯</span></button>
-            </div>
-          </article>
-
-          <article class="table-card">
-            <div class="table-toolbar">
-              <div>
-                <h3>Defect Records<span class="zh">瑕疵紀錄</span></h3>
-                <p>Vision-system rows simulate an OCR/AOI feed pushing detections in automatically.<span class="zh">「視覺系統」列模擬 OCR/AOI 自動偵測回傳的資料。</span></p>
-              </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
               <span id="defect-count" class="pill">0 defects</span>
+              <button id="btn-open-defect-modal" class="button button-primary">+ Log defect<span class="zh">+ 登錄瑕疵</span></button>
             </div>
-            <div class="table-filters">
-              <input id="filter-defect-query" class="filter-input" type="search" placeholder="Search SKU, type, station...">
-              <select id="filter-defect-status" class="filter-select"></select>
-              <select id="filter-defect-severity" class="filter-select"></select>
-              <button id="btn-clear-defect-filters" class="filter-clear">Clear<span class="zh">清除</span></button>
+          </div>
+          <div class="table-filters">
+            <input id="filter-defect-query" class="filter-input" type="search" placeholder="Search SKU, type, station...">
+            <select id="filter-defect-status" class="filter-select"></select>
+            <select id="filter-defect-severity" class="filter-select"></select>
+            <button id="btn-clear-defect-filters" class="filter-clear">Clear<span class="zh">清除</span></button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Company<span class="zh">公司</span></th>
+                  <th>Station<span class="zh">站別</span></th>
+                  <th>Defect type<span class="zh">瑕疵類型</span></th>
+                  <th>Severity<span class="zh">嚴重程度</span></th>
+                  <th>Status<span class="zh">狀態</span></th>
+                  <th>Detected by<span class="zh">偵測來源</span></th>
+                  <th>Detected at<span class="zh">偵測時間</span></th>
+                  <th>Actions<span class="zh">操作</span></th>
+                </tr>
+              </thead>
+              <tbody id="defect-table-body"></tbody>
+            </table>
+          </div>
+          <div id="defect-paginator"></div>
+        </article>
+
+        <div id="defect-modal" class="modal-backdrop" hidden>
+          <div class="modal-card" style="width:min(640px, 100%)" role="dialog" aria-modal="true" aria-labelledby="defect-modal-title">
+            <div class="modal-header">
+              <h3 id="defect-modal-title">Log Defect<span class="zh">登錄瑕疵</span></h3>
+              <button class="modal-close" id="defect-modal-close" aria-label="Close">×</button>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>SKU</th>
-                    <th>Company<span class="zh">公司</span></th>
-                    <th>Station<span class="zh">站別</span></th>
-                    <th>Defect type<span class="zh">瑕疵類型</span></th>
-                    <th>Severity<span class="zh">嚴重程度</span></th>
-                    <th>Status<span class="zh">狀態</span></th>
-                    <th>Detected by<span class="zh">偵測來源</span></th>
-                    <th>Detected at<span class="zh">偵測時間</span></th>
-                    <th>Actions<span class="zh">操作</span></th>
-                  </tr>
-                </thead>
-                <tbody id="defect-table-body"></tbody>
-              </table>
+            <div class="modal-body">
+              <p style="margin:0;font-size:13px;color:var(--muted)">SKU and defect type are required. Source distinguishes a manual inspector entry from an automated vision/OCR detection.<span class="zh">SKU 與瑕疵類型為必填。「偵測來源」用來區分人工檢驗與自動視覺（OCR）偵測。</span></p>
+              <div class="form-grid cols-2">
+                <div>
+                  <label for="defect-sku">Product / SKU<span class="zh">產品 / 料號</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
+                  <input id="defect-sku" type="text" placeholder="PCB-4471">
+                  <div class="field-error" id="err-defect-sku">SKU is required.<span class="zh">SKU 為必填。</span></div>
+                </div>
+                <div>
+                  <label for="defect-station">Station / line<span class="zh">站別 / 產線</span></label>
+                  <input id="defect-station" type="text" placeholder="Line 2 - AOI">
+                </div>
+                <div>
+                  <label for="defect-type">Defect type<span class="zh">瑕疵類型</span> <span class="label-hint">required<span class="zh">必填</span></span></label>
+                  <input id="defect-type" type="text" placeholder="Solder bridge">
+                  <div class="field-error" id="err-defect-type">Defect type is required.<span class="zh">瑕疵類型為必填。</span></div>
+                </div>
+                <div>
+                  <label for="defect-severity">Severity<span class="zh">嚴重程度</span></label>
+                  <select id="defect-severity"></select>
+                </div>
+                <div>
+                  <label for="defect-source">Detected by<span class="zh">偵測來源</span></label>
+                  <select id="defect-source"></select>
+                </div>
+                <div>
+                  <label for="defect-reportedby">Reported by<span class="zh">回報人</span></label>
+                  <input id="defect-reportedby" type="text" placeholder="Inspector or camera ID">
+                </div>
+                <div>
+                  <label for="defect-company">Company<span class="zh">公司</span></label>
+                  <select id="defect-company"></select>
+                  <div class="helper">Optional link to a record from the Companies module.<span class="zh">選填，可連結到 Companies 模組中的公司。</span></div>
+                </div>
+                <div>
+                  <label for="defect-notes">Notes<span class="zh">備註</span></label>
+                  <input id="defect-notes" type="text" placeholder="Optional detail">
+                </div>
+              </div>
             </div>
-            <div id="defect-paginator"></div>
-          </article>
+            <div class="modal-footer">
+              <button id="btn-save-defect" class="button button-primary">Log defect<span class="zh">登錄瑕疵</span></button>
+              <button id="btn-cancel-defect-modal" class="button button-secondary">Cancel<span class="zh">取消</span></button>
+            </div>
+          </div>
         </div>
       </section>`;
   },
   mount(container) {
     container.querySelector('#btn-save-defect')?.addEventListener('click', event =>
       saveDefect(event.currentTarget));
-    container.querySelector('#btn-cancel-defect-edit')?.addEventListener('click', resetForm);
+    container.querySelector('#btn-open-defect-modal')?.addEventListener('click', openCreateModal);
+    container.querySelector('#defect-modal-close')?.addEventListener('click', closeModal);
+    container.querySelector('#btn-cancel-defect-modal')?.addEventListener('click', closeModal);
+    container.querySelector('#defect-modal')?.addEventListener('click', event => {
+      if (event.target.id === 'defect-modal') closeModal();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      const modal = document.getElementById('defect-modal');
+      if (modal && !modal.hasAttribute('hidden')) closeModal();
+    });
+
     container.querySelector('#filter-defect-query')?.addEventListener('input', () => { resetPage(PAGE_KEY); renderTable(); });
     container.querySelector('#filter-defect-status')?.addEventListener('change', () => { resetPage(PAGE_KEY); renderTable(); });
     container.querySelector('#filter-defect-severity')?.addEventListener('change', () => { resetPage(PAGE_KEY); renderTable(); });
