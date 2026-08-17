@@ -68,7 +68,7 @@ Each frontend module exports `{ id, renderPanel(), renderNav(), mount() }` — t
 - **Filters** — name, stage/lifecycle, pipeline — with active-filter indicator
 - **Module ordering** — reorder panels in Settings; order persists across reloads
 - **Plugin system** — drop a ZIP to install a new panel; enable/disable/delete without restart
-- **Traditional Chinese toggle** — every panel and the landing page can switch to 繁體中文 with one click
+- **Traditional Chinese by default** — every panel and the landing page load in 繁體中文; one click switches to English
 
 ---
 
@@ -88,4 +88,6 @@ Nothing to configure. Data is created fresh on first run and persists to `App_Da
 ## Presentation
 
 `hubspot-deals-sandbox-presentation/presentation.html` — open in a browser.
-Press `→` to advance, `N` for presenter notes, `F` for fullscreen, `中文` to toggle Chinese subtitles.
+Loads in 繁體中文 by default. Press `→` to advance, `N` for presenter notes, `F` for fullscreen, `中文` to switch to English.
+
+PDF exports are also in that folder: `CRM-Sandbox-Presentation.pdf` and `CRM-Sandbox-Portfolio-Taiwan.pdf`.
